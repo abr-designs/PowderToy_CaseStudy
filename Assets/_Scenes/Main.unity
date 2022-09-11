@@ -132,30 +132,15 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1189435738}
-  - component: {fileID: 1189435737}
+  - component: {fileID: 1189435740}
+  - component: {fileID: 1189435739}
   m_Layer: 0
-  m_Name: Prototype
+  m_Name: Simulator
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1189435737
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1189435736}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: badab4aa0ff7a9e48a30b7b8f54b7dbe, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  size: {x: 30, y: 20}
-  targetRenderer: {fileID: 1571694059}
-  setColor: {r: 1, g: 1, b: 1, a: 1}
-  coordinate: {x: 15, y: 10}
 --- !u!4 &1189435738
 Transform:
   m_ObjectHideFlags: 0
@@ -172,6 +157,42 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1189435739
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189435736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e55431be46fb0540bdfadd8ed1b7691, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  targetRenderer: {fileID: 1571694059}
+  particleColors:
+  - Type: 1
+    Color: {r: 0.9056604, g: 0.87550735, b: 0.5767177, a: 1}
+  - Type: 2
+    Color: {r: 0.11863652, g: 0.39487365, b: 0.8113208, a: 1}
+--- !u!114 &1189435740
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189435736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c11e3f34a86337044a5f29d3e9403d40, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  particleCount: 0
+  particleRenderer: {fileID: 1189435739}
+  size: {x: 30, y: 20}
+  generationCoordinate: {x: 15, y: 19}
+  tickTime: 0.1
+  spawnDelay: 0
 --- !u!1 &1571694058
 GameObject:
   m_ObjectHideFlags: 0
@@ -210,7 +231,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8274ecc712dab294d8e10d31ac652e13, type: 2}
+  - {fileID: 2100000, guid: b53e696053efa7c4fa20cf2d8b5e7810, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -358,15 +379,15 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.003012048
-    y: 0
-    width: 0.9939759
-    height: 0.99999994
+    x: 0.015086207
+    y: 0.012944984
+    width: 0.9698276
+    height: 0.97087383
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60
   orthographic: 0
-  orthographic size: 5
+  orthographic size: 1
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
