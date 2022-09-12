@@ -20,15 +20,10 @@ namespace PowderToy
 
         [SerializeField, Min(0)]
         private Vector2Int generationCoordinate;
-        
-        
-        [SerializeField, Min(0f)]
-        private float tickTime;
-        private float _tickTimer;
-        
-        [SerializeField, Min(0), SuffixLabel("Ticks", true)]
+
+        /*[SerializeField, Min(0), SuffixLabel("Ticks", true)]
         private int spawnDelay;
-        private int _spawnTimer;
+        private int _spawnTimer;*/
 
         //FIXME This probably needs to be a list of pointers, not the data
         private Particle[] _particlePositions;
@@ -36,6 +31,12 @@ namespace PowderToy
 
         //Unity Functions
         //============================================================================================================//
+
+        private void OnEnable()
+        {
+            WorldTimer.OnTick += OnTick;
+        }
+
         // Start is called before the first frame update
         private void Start()
         {
@@ -46,26 +47,29 @@ namespace PowderToy
             OnInit?.Invoke(size);
         }
 
-        // Update is called once per frame
         private void Update()
         {
-            if (_tickTimer < tickTime)
-            {
-                _tickTimer += Time.deltaTime;
+            if (Input.GetKeyDown(KeyCode.R) == false)
                 return;
-            }
-
-            _tickTimer = 0f;
             
+            ClearGrid();
+        }
+
+        private void OnDisable()
+        {
+            WorldTimer.OnTick -= OnTick;
+        }
+
+        //============================================================================================================//
+        
+        private void OnTick()
+        {
             UpdateParticles();
-            TrySpawnParticle();
+            //TrySpawnParticle();
             _particleRenderer.UpdateTexture(_activeParticles);
         }
         
-        
-        //============================================================================================================//
-
-        private bool everyOther;
+        /*private bool everyOther;
         private void TrySpawnParticle()
         {
             if (_spawnTimer < spawnDelay)
@@ -92,6 +96,27 @@ namespace PowderToy
             _particlePositions[CoordinateToIndex(generationCoordinate)] = newParticle;
 
             everyOther = !everyOther;
+            particleCount++;
+        }*/
+        
+        public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
+        {
+
+            if(IsSpaceOccupied(coordinate.x, coordinate.y))
+                return;
+            
+            var newParticle = new Particle
+            {
+                Coordinate = coordinate,
+                IsOccupied = true,
+                Type = type,
+                Index =  _activeParticles.Count
+            };
+            
+            _activeParticles.Add(newParticle);
+
+            _particlePositions[CoordinateToIndex(coordinate)] = newParticle;
+
             particleCount++;
         }
 
@@ -132,6 +157,17 @@ namespace PowderToy
                     particle.Asleep = true;
                 
                 _activeParticles[i] = particle;
+            }
+        }
+
+        private void ClearGrid()
+        {
+            _activeParticles.Clear();
+            var count = _particlePositions.Length;
+
+            for (int i = 0; i < count; i++)
+            {
+                _particlePositions[i] = Particle.Empty;
             }
         }
         
