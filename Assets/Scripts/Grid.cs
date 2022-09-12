@@ -8,13 +8,14 @@ namespace PowderToy
 {
     public class Grid : MonoBehaviour
     {
+        public static Action<Vector2Int> OnInit;
+        
         [SerializeField, ReadOnly]
         private int particleCount;
 
-        [SerializeField]
-        private ParticleRenderer particleRenderer;
+        private ParticleRenderer _particleRenderer;
         
-        [SerializeField, Min(0)]
+        [SerializeField, Min(0), DisableInPlayMode]
         private Vector2Int size;
 
         [SerializeField, Min(0)]
@@ -41,7 +42,8 @@ namespace PowderToy
             _particlePositions = new Particle[size.x * size.y];
             _activeParticles = new List<Particle>();
 
-            particleRenderer.Init(size);
+            _particleRenderer = FindObjectOfType<ParticleRenderer>();
+            OnInit?.Invoke(size);
         }
 
         // Update is called once per frame
@@ -57,7 +59,7 @@ namespace PowderToy
             
             UpdateParticles();
             TrySpawnParticle();
-            particleRenderer.UpdateTexture(_activeParticles);
+            _particleRenderer.UpdateTexture(_activeParticles);
         }
         
         

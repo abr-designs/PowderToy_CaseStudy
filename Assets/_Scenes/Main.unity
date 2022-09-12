@@ -134,6 +134,7 @@ GameObject:
   - component: {fileID: 1189435738}
   - component: {fileID: 1189435740}
   - component: {fileID: 1189435739}
+  - component: {fileID: 1189435741}
   m_Layer: 0
   m_Name: Simulator
   m_TagString: Untagged
@@ -188,11 +189,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   particleCount: 0
-  particleRenderer: {fileID: 1189435739}
   size: {x: 30, y: 20}
   generationCoordinate: {x: 15, y: 19}
   tickTime: 0.1
   spawnDelay: 0
+--- !u!114 &1189435741
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189435736}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ec46e6198e144441b83ebfb82d00851, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  camera: {fileID: 0}
+  mousePosition: {x: 0, y: 0, z: 0}
+  mouseCoordinate: {x: 0, y: 0}
 --- !u!1 &1571694058
 GameObject:
   m_ObjectHideFlags: 0
@@ -379,10 +394,10 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.015086207
-    y: 0.012944984
-    width: 0.9698276
-    height: 0.97087383
+    x: 0.0052700923
+    y: 0.005928854
+    width: 0.9881423
+    height: 0.9881423
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60

@@ -31,11 +31,18 @@ namespace PowderToy
         private Color[] _blankTexture;
         private Color[] _activeTexture;
         private Dictionary<Particle.TYPE, Color> _particleColors;
+        
+        //Unity Functions
+        //============================================================================================================//
+
+        private void OnEnable() => Grid.OnInit += Init;
+
+        private void OnDisable() => Grid.OnInit -= Init;
 
         //Init Function
         //============================================================================================================//
 
-        public void Init(in Vector2Int size)
+        public void Init(Vector2Int size)
         {
             //Setup Color references
             //------------------------------------------------------------------//
@@ -88,6 +95,7 @@ namespace PowderToy
                 _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = _particleColors[particle.Type];
             }
 
+            _activeTexture[CoordinateToIndex(ParticleSpawner.MouseCoordinate.x, ParticleSpawner.MouseCoordinate.y)] = Color.red;
             SetPixels(_activeTexture);
         }
 
