@@ -9,6 +9,10 @@ namespace PowderToy
     public class ParticleSpawner : MonoBehaviour
     {
         public static Vector2Int MouseCoordinate { get; private set; }
+        public static int SpawnRadius { get; private set; }
+
+        [SerializeField, ReadOnly]
+        private int DEBUG_SpawnRadius;
 
         [SerializeField]
         private Particle.TYPE selectedType;
@@ -32,6 +36,7 @@ namespace PowderToy
         private void Start()
         {
             _particleGrid = FindObjectOfType<Grid>();
+            SpawnRadius = 1;
         }
 
         // Update is called once per frame
@@ -43,6 +48,13 @@ namespace PowderToy
                 _mouseDown = true;
             else if(Input.GetKeyUp(KeyCode.Mouse0))
                 _mouseDown = false;
+
+            if (Input.GetKeyDown(KeyCode.A) && SpawnRadius > 1)
+                SpawnRadius--;
+            else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < 30)
+                SpawnRadius++;
+
+            DEBUG_SpawnRadius = SpawnRadius;
         }
 
         private void OnDisable()

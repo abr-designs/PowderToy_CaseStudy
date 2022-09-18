@@ -95,8 +95,41 @@ namespace PowderToy
                 _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = _particleColors[particle.Type];
             }
 
-            _activeTexture[CoordinateToIndex(ParticleSpawner.MouseCoordinate.x, ParticleSpawner.MouseCoordinate.y)] = Color.red;
+            UpdateMousePos(ParticleSpawner.SpawnRadius, Color.red);
             SetPixels(_activeTexture);
+        }
+
+        private void UpdateMousePos(in int radius, in Color color)
+        {
+            if (radius == 1)
+            {
+                _activeTexture
+                    [CoordinateToIndex(ParticleSpawner.MouseCoordinate.x, ParticleSpawner.MouseCoordinate.y)] = color;
+                return;
+            }
+                
+            int CoordinateToIndex(in int x, in int y) => (_size.x * y) + x;
+            
+            int x, y, px, nx, py, ny, d;
+            var coord = ParticleSpawner.MouseCoordinate;
+            //Color[] tempArray = tex.GetPixels32;
+
+            for (x = 0; x <= radius; x++)
+            {
+                d = (int)Mathf.Ceil(Mathf.Sqrt(radius * radius - x * x));
+                for (y = 0; y <= d; y++)
+                {
+                    px = coord.x + x;
+                    nx = coord.x - x;
+                    py = coord.y + y;
+                    ny = coord.y - y;
+
+                    _activeTexture[CoordinateToIndex(px, py)] = color;
+                    _activeTexture[CoordinateToIndex(nx, py)] = color;
+                    _activeTexture[CoordinateToIndex(px, ny)] = color;
+                    _activeTexture[CoordinateToIndex(nx, ny)] = color;
+                }
+            }    
         }
 
         private void SetPixels(in Color[] colors)

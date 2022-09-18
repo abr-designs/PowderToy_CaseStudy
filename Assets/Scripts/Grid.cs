@@ -99,7 +99,7 @@ namespace PowderToy
             particleCount++;
         }*/
         
-        public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
+        public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate, in int radius = 1)
         {
 
             if(IsSpaceOccupied(coordinate.x, coordinate.y))
