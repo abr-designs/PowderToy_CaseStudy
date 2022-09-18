@@ -20,12 +20,14 @@ namespace PowderToy
 
         private Grid _particleGrid;
         
-        
-        
         //Unity Functions
         //============================================================================================================//
 
-        private void OnEnable() => Grid.OnInit += Init;
+        private void OnEnable()
+        {
+            Grid.OnInit += Init;
+            WorldTimer.OnTick += OnTick;
+        }
 
         private void Start()
         {
@@ -36,11 +38,19 @@ namespace PowderToy
         private void Update()
         {
             UpdateScreenPosition();
-            TrySpawnNewParticle();
+            
+            if (Input.GetKeyDown(KeyCode.Mouse0))
+                _mouseDown = true;
+            else if(Input.GetKeyUp(KeyCode.Mouse0))
+                _mouseDown = false;
         }
-        
-        private void OnDisable() => Grid.OnInit -= Init;
-        
+
+        private void OnDisable()
+        {
+            Grid.OnInit -= Init;
+            WorldTimer.OnTick -= OnTick;
+        }
+
         //Init Function
         //============================================================================================================//
 
@@ -50,15 +60,17 @@ namespace PowderToy
             _screenSize = new Vector2(Screen.width, Screen.height);
         }
 
+        private void OnTick()
+        {
+            TrySpawnNewParticle();
+        }
+
         private void TrySpawnNewParticle()
         {
-            if (Input.GetKeyDown(KeyCode.Mouse0))
-                _mouseDown = true;
-            else if(Input.GetKeyUp(KeyCode.Mouse0))
-                _mouseDown = false;
-
             if (_mouseDown == false)
                 return;
+            
+            _particleGrid.SpawnParticle(selectedType, MouseCoordinate);
         }
         
         //UpdateScreenPosition
