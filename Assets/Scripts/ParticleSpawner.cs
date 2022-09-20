@@ -36,7 +36,7 @@ namespace PowderToy
         private void Start()
         {
             _particleGrid = FindObjectOfType<Grid>();
-            SpawnRadius = 1;
+            SpawnRadius = 0;
         }
 
         // Update is called once per frame
@@ -49,9 +49,9 @@ namespace PowderToy
             else if(Input.GetKeyUp(KeyCode.Mouse0))
                 _mouseDown = false;
 
-            if (Input.GetKeyDown(KeyCode.A) && SpawnRadius > 1)
+            if (Input.GetKeyDown(KeyCode.A) && SpawnRadius > 0)
                 SpawnRadius--;
-            else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < 30)
+            else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < 7)
                 SpawnRadius++;
 
             DEBUG_SpawnRadius = SpawnRadius;
@@ -81,8 +81,37 @@ namespace PowderToy
         {
             if (_mouseDown == false)
                 return;
+
+            if (SpawnRadius == 0)
+                _particleGrid.SpawnParticle(selectedType, MouseCoordinate);
+            else
+                TrySpawnNewParticles(SpawnRadius);
+        }
+
+        private void TrySpawnNewParticles(in int radius)
+        {
+            int x, y, px, nx, py, ny, d;
             
-            _particleGrid.SpawnParticle(selectedType, MouseCoordinate);
+            var coord = MouseCoordinate;
+            var rSqr = radius * radius;
+
+            for (x = 0; x <= radius; x++)
+            {
+                d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
+                for (y = 0; y <= d; y++)
+                {
+                    px = coord.x + x;
+                    nx = coord.x - x;
+                    
+                    py = coord.y + y;
+                    ny = coord.y - y;
+
+                    _particleGrid.SpawnParticle(selectedType, new Vector2Int(px, py));
+                    _particleGrid.SpawnParticle(selectedType, new Vector2Int(nx, py));
+                    _particleGrid.SpawnParticle(selectedType, new Vector2Int(px, ny));
+                    _particleGrid.SpawnParticle(selectedType, new Vector2Int(nx, ny));
+                }
+            } 
         }
         
         //UpdateScreenPosition

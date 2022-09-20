@@ -101,35 +101,48 @@ namespace PowderToy
 
         private void UpdateMousePos(in int radius, in Color color)
         {
-            if (radius == 1)
+            int CoordinateToIndex(in int x, in int y) => (_size.x * y) + x;
+
+            if (radius == 0)
             {
                 _activeTexture
                     [CoordinateToIndex(ParticleSpawner.MouseCoordinate.x, ParticleSpawner.MouseCoordinate.y)] = color;
                 return;
             }
-                
-            int CoordinateToIndex(in int x, in int y) => (_size.x * y) + x;
-            
+
             int x, y, px, nx, py, ny, d;
-            var coord = ParticleSpawner.MouseCoordinate;
-            //Color[] tempArray = tex.GetPixels32;
+            var coordinates = new List<Vector2Int>();
+            var mouseCoord = ParticleSpawner.MouseCoordinate;
+            var rSqr = radius * radius;
 
             for (x = 0; x <= radius; x++)
             {
-                d = (int)Mathf.Ceil(Mathf.Sqrt(radius * radius - x * x));
+                d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
                 for (y = 0; y <= d; y++)
                 {
-                    px = coord.x + x;
-                    nx = coord.x - x;
-                    py = coord.y + y;
-                    ny = coord.y - y;
-
-                    _activeTexture[CoordinateToIndex(px, py)] = color;
-                    _activeTexture[CoordinateToIndex(nx, py)] = color;
-                    _activeTexture[CoordinateToIndex(px, ny)] = color;
-                    _activeTexture[CoordinateToIndex(nx, ny)] = color;
+                    px = mouseCoord.x + x;
+                    nx = mouseCoord.x - x;
+                    
+                    py = mouseCoord.y + y;
+                    ny = mouseCoord.y - y;
+                    
+                    coordinates.Add(new Vector2Int(px, py));
+                    coordinates.Add(new Vector2Int(nx, py));
+                    coordinates.Add(new Vector2Int(px, ny));
+                    coordinates.Add(new Vector2Int(nx, ny));
                 }
-            }    
+            }
+
+            for (int i = 0; i < coordinates.Count; i++)
+            {
+                var coord = coordinates[i];
+                if (coord.x >= _size.x || coord.x < 0)
+                    continue;
+                if (coord.y >= _size.y || coord.y < 0)
+                    continue;
+                
+                _activeTexture[CoordinateToIndex(coord.x, coord.y)] = color;
+            }
         }
 
         private void SetPixels(in Color[] colors)
