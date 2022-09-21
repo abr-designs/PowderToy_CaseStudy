@@ -18,13 +18,6 @@ namespace PowderToy
         [SerializeField, Min(0), DisableInPlayMode]
         private Vector2Int size;
 
-        [SerializeField, Min(0)]
-        private Vector2Int generationCoordinate;
-
-        /*[SerializeField, Min(0), SuffixLabel("Ticks", true)]
-        private int spawnDelay;
-        private int _spawnTimer;*/
-
         //FIXME This probably needs to be a list of pointers, not the data
         private Particle[] _particlePositions;
         private List<Particle> _activeParticles;
@@ -208,6 +201,9 @@ namespace PowderToy
         {
             var originalCoordinate = particle.Coordinate;
 
+            if(particle.Asleep && IsSpaceOccupied(originalCoordinate.x, originalCoordinate.y - 1))
+                return false;
+            
             //------------------------------------------------------------------//
             
             bool TrySetNewPosition(in Vector2Int offset, ref Particle myParticle)

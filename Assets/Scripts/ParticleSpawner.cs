@@ -85,10 +85,10 @@ namespace PowderToy
             if (SpawnRadius == 0)
                 _particleGrid.SpawnParticle(selectedType, MouseCoordinate);
             else
-                TrySpawnNewParticles(SpawnRadius);
+                TrySpawnNewParticlesInRadius(SpawnRadius);
         }
 
-        private void TrySpawnNewParticles(in int radius)
+        private void TrySpawnNewParticlesInRadius(in int radius)
         {
             int x, y, px, nx, py, ny, d;
             
@@ -111,7 +111,9 @@ namespace PowderToy
                     _particleGrid.SpawnParticle(selectedType, new Vector2Int(px, ny));
                     _particleGrid.SpawnParticle(selectedType, new Vector2Int(nx, ny));
                 }
-            } 
+            }
+
+            //_mouseDown = false;
         }
         
         //UpdateScreenPosition

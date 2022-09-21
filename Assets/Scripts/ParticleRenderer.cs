@@ -18,6 +18,9 @@ namespace PowderToy
         //============================================================================================================//
         private Vector2Int _size;
 
+        [SerializeField]
+        private bool USE_DEBUG_VIEW;
+
         [SerializeField] private Renderer targetRenderer;
         private Material _sharedMaterial;
 
@@ -92,7 +95,13 @@ namespace PowderToy
             {
                 var particle = particles[i];
                 var coordinate = particle.Coordinate;
-                _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = _particleColors[particle.Type];
+
+                if (USE_DEBUG_VIEW)
+                    _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] =
+                        Color.Lerp(Color.green, Color.red, i / (float)count);
+                else
+                    _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = _particleColors[particle.Type];
+
             }
 
             UpdateMousePos(ParticleSpawner.SpawnRadius, Color.red);
