@@ -6,7 +6,7 @@ namespace PowderToy
 {
     public struct Particle
     {
-        public const int WAIT_TO_SLEEP = 3;
+        public const int WAIT_TO_SLEEP = 50;
         public static readonly Particle Empty = new Particle();
 
         public enum TYPE
@@ -19,7 +19,7 @@ namespace PowderToy
         public TYPE Type;
         public int Index;
         public int SleepCounter;
-        public bool IsOccupied;
+        //public bool IsOccupied;
         public bool Asleep;
         public Vector2Int Coordinate;
     }

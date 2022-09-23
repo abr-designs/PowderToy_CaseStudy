@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -8,6 +9,23 @@ namespace PowderToy
 {
     public class Grid : MonoBehaviour
     {
+        //Structs
+        //============================================================================================================//
+        
+        public struct GridPos
+        {
+            public static readonly GridPos Empty = new GridPos
+            {
+                IsOccupied = false,
+                particleIndex = -1
+            };
+            
+            public bool IsOccupied;
+            public int particleIndex;
+        }
+
+        //============================================================================================================//        
+        
         public static Action<Vector2Int> OnInit;
         
         [SerializeField, ReadOnly]
@@ -19,7 +37,7 @@ namespace PowderToy
         private Vector2Int size;
 
         //FIXME This probably needs to be a list of pointers, not the data
-        private Particle[] _particlePositions;
+        private GridPos[] _gridPositions;
         private List<Particle> _activeParticles;
 
         //Unity Functions
@@ -33,7 +51,8 @@ namespace PowderToy
         // Start is called before the first frame update
         private void Start()
         {
-            _particlePositions = new Particle[size.x * size.y];
+            _gridPositions = new GridPos[size.x * size.y];
+            
             _activeParticles = new List<Particle>();
 
             _particleRenderer = FindObjectOfType<ParticleRenderer>();
@@ -58,57 +77,29 @@ namespace PowderToy
         private void OnTick()
         {
             UpdateParticles();
-            //TrySpawnParticle();
+
             _particleRenderer.UpdateTexture(_activeParticles);
         }
-        
-        /*private bool everyOther;
-        private void TrySpawnParticle()
-        {
-            if (_spawnTimer < spawnDelay)
-            {
-                _spawnTimer++;
-                return;
-            }
 
-            _spawnTimer = 0;
-            
-            if(IsSpaceOccupied(generationCoordinate.x, generationCoordinate.y))
-                return;
-            
-            var newParticle = new Particle
-            {
-                Coordinate = generationCoordinate,
-                IsOccupied = true,
-                Type = everyOther ? Particle.TYPE.WATER : Particle.TYPE.SAND,
-                Index =  _activeParticles.Count
-            };
-            
-            _activeParticles.Add(newParticle);
-
-            _particlePositions[CoordinateToIndex(generationCoordinate)] = newParticle;
-
-            everyOther = !everyOther;
-            particleCount++;
-        }*/
-        
         public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
         {
-
             if(IsSpaceOccupied(coordinate.x, coordinate.y))
                 return;
             
             var newParticle = new Particle
             {
                 Coordinate = coordinate,
-                IsOccupied = true,
                 Type = type,
                 Index =  _activeParticles.Count
             };
             
             _activeParticles.Add(newParticle);
 
-            _particlePositions[CoordinateToIndex(coordinate)] = newParticle;
+            _gridPositions[CoordinateToIndex(coordinate)] = new GridPos
+            {
+                IsOccupied = true,
+                particleIndex = newParticle.Index
+            };
 
             particleCount++;
         }
@@ -116,13 +107,11 @@ namespace PowderToy
         private void UpdateParticles()
         {
             var count = _activeParticles.Count;
+            //_activeParticles = _activeParticles.OrderBy(p => p.Coordinate.y).ToList();
             for (int i = 0; i < count; i++)
             {
                 var particle = _activeParticles[i];
 
-                if (particle.IsOccupied == false)
-                    throw new Exception();
-                
                 if(particle.Asleep)
                     continue;
 
@@ -146,21 +135,21 @@ namespace PowderToy
                     continue;
                 }
 
-                if(particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
+                /*if(particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
                     particle.Asleep = true;
                 
-                _activeParticles[i] = particle;
+                _activeParticles[i] = particle;*/
             }
         }
 
         private void ClearGrid()
         {
             _activeParticles.Clear();
-            var count = _particlePositions.Length;
+            var count = _gridPositions.Length;
 
             for (int i = 0; i < count; i++)
             {
-                _particlePositions[i] = Particle.Empty;
+                _gridPositions[i] = GridPos.Empty;
             }
         }
         
@@ -176,10 +165,15 @@ namespace PowderToy
             if (y >= size.y || y < 0)
                 return true;
             
-            var index = CoordinateToIndex(x, y);
-            occupier = _particlePositions[index];
+            var gridIndex = CoordinateToIndex(x, y);
+            var particleIndex = _gridPositions[gridIndex].particleIndex;
 
-            return occupier.IsOccupied;
+            if (_gridPositions[gridIndex].IsOccupied == false)
+                return false;
+            
+            occupier = _activeParticles[particleIndex];
+
+            return true;
         }
         private bool IsSpaceOccupied(in int x, in int y)
         {
@@ -189,7 +183,7 @@ namespace PowderToy
                 return true;
             
             var index = CoordinateToIndex(x, y);
-            return _particlePositions[index].IsOccupied;
+            return _gridPositions[index].IsOccupied;
         }
         
         private int CoordinateToIndex(in Vector2Int c) => CoordinateToIndex(c.x, c.y);
@@ -201,9 +195,9 @@ namespace PowderToy
         {
             var originalCoordinate = particle.Coordinate;
 
-            if(particle.Asleep && IsSpaceOccupied(originalCoordinate.x, originalCoordinate.y - 1))
+            if(particle.Asleep)
                 return false;
-            
+
             //------------------------------------------------------------------//
             
             bool TrySetNewPosition(in Vector2Int offset, ref Particle myParticle)
@@ -217,19 +211,29 @@ namespace PowderToy
                     return false;
                 
                 myParticle.Coordinate += offset;
+                
                 //Test for water
                 //------------------------------------------------------------------//
                 if (occupier.Type == Particle.TYPE.WATER)
                 {
                     occupier.Coordinate = originalCoordinate;
-                    _particlePositions[CoordinateToIndex(originalCoordinate)] = occupier;
+                    _gridPositions[CoordinateToIndex(originalCoordinate)] = new GridPos
+                    {
+                        IsOccupied = true,
+                        particleIndex = occupier.Index
+                    };
                     _activeParticles[occupier.Index] = occupier;
                 }
                 else
-                    _particlePositions[CoordinateToIndex(originalCoordinate)] = Particle.Empty;
+                    _gridPositions[CoordinateToIndex(originalCoordinate)] = GridPos.Empty;
                 //------------------------------------------------------------------//
-                
-                _particlePositions[CoordinateToIndex(myParticle.Coordinate)] = myParticle;
+
+
+                _gridPositions[CoordinateToIndex(myParticle.Coordinate)] = new GridPos
+                {
+                    IsOccupied = true,
+                    particleIndex = myParticle.Index
+                };
                 _activeParticles[myParticle.Index] = myParticle;
                 return true;
             }
@@ -291,9 +295,13 @@ namespace PowderToy
                 
                 myParticle.Coordinate += offset;
 
-                _particlePositions[CoordinateToIndex(coordinate)] = Particle.Empty;
+                _gridPositions[CoordinateToIndex(coordinate)] = GridPos.Empty;
                 
-                _particlePositions[CoordinateToIndex(myParticle.Coordinate)] = myParticle;
+                _gridPositions[CoordinateToIndex(myParticle.Coordinate)] = new GridPos
+                {
+                    IsOccupied = true,
+                    particleIndex = myParticle.Index
+                };
                 return true;
             }
             

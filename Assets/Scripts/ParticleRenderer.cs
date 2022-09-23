@@ -21,6 +21,9 @@ namespace PowderToy
         [SerializeField]
         private bool USE_DEBUG_VIEW;
 
+        [Min(0), SerializeField]
+        private int DEBUG_hightlightIndex;
+
         [SerializeField] private Renderer targetRenderer;
         private Material _sharedMaterial;
 
@@ -96,9 +99,12 @@ namespace PowderToy
                 var particle = particles[i];
                 var coordinate = particle.Coordinate;
 
-                if (USE_DEBUG_VIEW)
+                /*if (USE_DEBUG_VIEW)
                     _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] =
                         Color.Lerp(Color.green, Color.red, i / (float)count);
+                else*/
+                if(DEBUG_hightlightIndex == i)
+                    _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = Color.magenta;
                 else
                     _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = _particleColors[particle.Type];
 
