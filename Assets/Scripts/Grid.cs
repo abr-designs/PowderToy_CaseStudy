@@ -24,7 +24,28 @@ namespace PowderToy
             public int particleIndex;
         }
 
-       
+        private class ParticleColContainer
+        {
+            public readonly uint[] ParticleIndices;
+            public uint ParticleCount;
+
+            public ParticleColContainer(in uint rowSize)
+            {
+                ParticleIndices = new uint[rowSize];
+                ParticleCount = 0;
+            }
+
+            public void AddParticle(in int index) => AddParticle((uint)index);
+            public void AddParticle(in uint index)
+            {
+                ParticleIndices[ParticleCount++] = index;
+            }
+
+            public void Clear()
+            {
+                ParticleCount = 0;
+            }
+        }
 
         //============================================================================================================//        
         
@@ -41,11 +62,14 @@ namespace PowderToy
         private static int _sizeX;
         private static int _sizeY;
 
+        private ParticleColContainer[] _rowsContainers;
+        //private bool _firstReady;
+
         //FIXME This probably needs to be a list of pointers, not the data
         private GridPos[] _gridPositions;
         private List<Particle> _activeParticles;
 
-        private CompareParticleAscending _particleComparer;
+        //private CompareParticleAscending _particleComparer;
 
         //Unity Functions
         //============================================================================================================//
@@ -66,6 +90,17 @@ namespace PowderToy
             _particleRenderer = FindObjectOfType<ParticleRenderer>();
             _sizeX = size.x;
             _sizeY = size.y;
+
+            //Setup column Containers
+            //------------------------------------------------//
+            _rowsContainers = new ParticleColContainer[_sizeY];
+            var sizeX = (uint)_sizeX;
+            for (var i = 0; i < _sizeY; i++)
+            {
+                _rowsContainers[i] = new ParticleColContainer(sizeX);
+            }
+
+            //------------------------------------------------//
             OnInit?.Invoke(size);
         }
 
@@ -86,7 +121,10 @@ namespace PowderToy
         
         private void OnTick()
         {
-            UpdateParticles();
+            /*if (_firstReady) UpdateParticles();
+            else */
+            UpdateParticles2();
+            UpdateParticleRows();
 
             _particleRenderer.UpdateTexture(_activeParticles);
         }
@@ -96,11 +134,12 @@ namespace PowderToy
             if(IsSpaceOccupied(coordinate.x, coordinate.y))
                 return;
             
+            var newIndex = _activeParticles.Count;
             var newParticle = new Particle
             {
                 Coordinate = coordinate,
                 Type = type,
-                Index =  _activeParticles.Count
+                Index =  newIndex
             };
             
             _activeParticles.Add(newParticle);
@@ -112,9 +151,10 @@ namespace PowderToy
             };
 
             particleCount++;
+            _rowsContainers[coordinate.y].AddParticle(newIndex);
         }
 
-        private void UpdateParticles()
+        /*private void UpdateParticles()
         {
             var count = _activeParticles.Count;
             //FIXME Don't create list here, I should be able to have a single list created through spawn, use SetCapacity
@@ -152,7 +192,54 @@ namespace PowderToy
                 /*if(particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
                     particle.Asleep = true;
                 
-                _activeParticles[i] = particle;*/
+                _activeParticles[i] = particle;#1#
+            }
+        }*/
+        private void UpdateParticles2()
+        {
+            for (int i = 0; i < _sizeY; i++)
+            {
+                var container = _rowsContainers[i].ParticleIndices;
+                var count = _rowsContainers[i].ParticleCount;
+                for (int ii = 0; ii < count; ii++)
+                {
+                    var particle = _activeParticles[(int)container[ii]];
+
+                    if(particle.Asleep)
+                        continue;
+
+                    bool didUpdate;
+
+                    switch (particle.Type)
+                    {
+                        case Particle.TYPE.SAND:
+                            didUpdate = UpdateSandParticle(ref particle);
+                            break;
+                        case Particle.TYPE.WATER:
+                            didUpdate = UpdateWaterParticle(ref particle);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException();
+                    }
+
+                    if (didUpdate)
+                    {
+                        _activeParticles[particle.Index] = particle;
+                        continue;
+                    }
+                }
+                
+                _rowsContainers[i].Clear();
+            }
+        }
+
+        private void UpdateParticleRows()
+        {
+            var count = _activeParticles.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var particle = _activeParticles[i];
+                _rowsContainers[particle.Coordinate.y].AddParticle(particle.Index);
             }
         }
 
