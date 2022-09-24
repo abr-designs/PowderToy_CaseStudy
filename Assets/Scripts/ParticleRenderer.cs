@@ -125,15 +125,24 @@ namespace PowderToy
                 return;
             }
 
-            int x, y, px, nx, py, ny, d;
+            int px, nx, py, ny, d;
             var coordinates = new List<Vector2Int>();
             var mouseCoord = ParticleSpawner.MouseCoordinate;
             var rSqr = radius * radius;
+            
+            //Radius 2 => 12
+            //Radius 3 => 28
+            //Radius 4 => 52
+            //Radius 5 => 80
+            //Radius 6 => 112
+            //Radius 7 => 160
+            //Radius 8 => 204
 
-            for (x = 0; x <= radius; x++)
+            
+            for (var x = 0; x <= radius; x++)
             {
                 d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
-                for (y = 0; y <= d; y++)
+                for (var y = 0; y <= d; y++)
                 {
                     px = mouseCoord.x + x;
                     nx = mouseCoord.x - x;
@@ -141,13 +150,14 @@ namespace PowderToy
                     py = mouseCoord.y + y;
                     ny = mouseCoord.y - y;
                     
+                    //FIXME Move this to pre-made array to avoid alloc issues
                     coordinates.Add(new Vector2Int(px, py));
                     coordinates.Add(new Vector2Int(nx, py));
                     coordinates.Add(new Vector2Int(px, ny));
                     coordinates.Add(new Vector2Int(nx, ny));
                 }
             }
-
+            Debug.Log($"{radius} => {coordinates.Count}");
             for (int i = 0; i < coordinates.Count; i++)
             {
                 var coord = coordinates[i];

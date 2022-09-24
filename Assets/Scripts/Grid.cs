@@ -24,6 +24,8 @@ namespace PowderToy
             public int particleIndex;
         }
 
+       
+
         //============================================================================================================//        
         
         public static Action<Vector2Int> OnInit;
@@ -36,9 +38,14 @@ namespace PowderToy
         [SerializeField, Min(0), DisableInPlayMode]
         private Vector2Int size;
 
+        private static int _sizeX;
+        private static int _sizeY;
+
         //FIXME This probably needs to be a list of pointers, not the data
         private GridPos[] _gridPositions;
         private List<Particle> _activeParticles;
+
+        private CompareParticleAscending _particleComparer;
 
         //Unity Functions
         //============================================================================================================//
@@ -54,8 +61,11 @@ namespace PowderToy
             _gridPositions = new GridPos[size.x * size.y];
             
             _activeParticles = new List<Particle>();
+            _particleComparer = new CompareParticleAscending();
 
             _particleRenderer = FindObjectOfType<ParticleRenderer>();
+            _sizeX = size.x;
+            _sizeY = size.y;
             OnInit?.Invoke(size);
         }
 
@@ -107,10 +117,14 @@ namespace PowderToy
         private void UpdateParticles()
         {
             var count = _activeParticles.Count;
-            //_activeParticles = _activeParticles.OrderBy(p => p.Coordinate.y).ToList();
+            //FIXME Don't create list here, I should be able to have a single list created through spawn, use SetCapacity
+            var sortedParticles = new List<Particle>(_activeParticles);
+            //FIXME I should be able to sort as I update for next frame
+            sortedParticles.Sort(_particleComparer);
+            
             for (int i = 0; i < count; i++)
             {
-                var particle = _activeParticles[i];
+                var particle = sortedParticles[i];
 
                 if(particle.Asleep)
                     continue;
@@ -131,7 +145,7 @@ namespace PowderToy
 
                 if (didUpdate)
                 {
-                    _activeParticles[i] = particle;
+                    _activeParticles[particle.Index] = particle;
                     continue;
                 }
 
@@ -186,8 +200,8 @@ namespace PowderToy
             return _gridPositions[index].IsOccupied;
         }
         
-        private int CoordinateToIndex(in Vector2Int c) => CoordinateToIndex(c.x, c.y);
-        private int CoordinateToIndex(in int x, in int y) => (size.x * y) + x;
+        private static int CoordinateToIndex(in Vector2Int c) => CoordinateToIndex(c.x, c.y);
+        private static int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
         
         //============================================================================================================//
 

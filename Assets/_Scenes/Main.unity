@@ -172,6 +172,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   USE_DEBUG_VIEW: 0
+  DEBUG_hightlightIndex: 150
   targetRenderer: {fileID: 1571694059}
   particleColors:
   - Type: 1
@@ -191,7 +192,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   particleCount: 0
-  size: {x: 90, y: 60}
+  size: {x: 300, y: 200}
 --- !u!114 &1189435741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -218,7 +219,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 481a402d9bba4f240aa3fe8adde6e8e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  tickTime: 0.1
+  tickTime: 0.01
 --- !u!1 &1571694058
 GameObject:
   m_ObjectHideFlags: 0
@@ -406,10 +407,10 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.0121951215
-    y: 0.0121951215
-    width: 0.9756097
-    height: 0.9756097
+    x: 0.009082653
+    y: 0.009536784
+    width: 0.98092645
+    height: 0.9809264
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60

@@ -23,4 +23,22 @@ namespace PowderToy
         public bool Asleep;
         public Vector2Int Coordinate;
     }
+    
+    public class CompareParticleAscending : IComparer<Particle>
+    {
+        public int Compare(Particle particleA, Particle particleB)
+        {
+            return particleA.Coordinate.y - particleB.Coordinate.y;
+
+            /*switch (dif)
+            {
+                case > 0:
+                    return 1;
+                case < 0:
+                    return -1;
+                default:
+                    return 0;
+            }*/
+        }
+    }
 }
