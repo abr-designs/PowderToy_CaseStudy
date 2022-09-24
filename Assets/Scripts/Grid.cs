@@ -85,7 +85,7 @@ namespace PowderToy
             _gridPositions = new GridPos[size.x * size.y];
             
             _activeParticles = new List<Particle>();
-            _particleComparer = new CompareParticleAscending();
+            //_particleComparer = new CompareParticleAscending();
 
             _particleRenderer = FindObjectOfType<ParticleRenderer>();
             _sizeX = size.x;
