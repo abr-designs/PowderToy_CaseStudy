@@ -8,6 +8,8 @@ namespace PowderToy
 {
     public class ParticleSpawner : MonoBehaviour
     {
+        private const int MIN_RADIUS = 0;
+        private const int MAX_RADIUS = 7;
         public static Vector2Int MouseCoordinate { get; private set; }
         public static int SpawnRadius { get; private set; }
 
@@ -49,9 +51,9 @@ namespace PowderToy
             else if(Input.GetKeyUp(KeyCode.Mouse0))
                 _mouseDown = false;
 
-            if (Input.GetKeyDown(KeyCode.A) && SpawnRadius > 0)
+            if (Input.GetKeyDown(KeyCode.A) && SpawnRadius > MIN_RADIUS)
                 SpawnRadius--;
-            else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < 7)
+            else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < MAX_RADIUS)
                 SpawnRadius++;
 
             DEBUG_SpawnRadius = SpawnRadius;

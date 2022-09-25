@@ -38,6 +38,9 @@ namespace PowderToy
         private Color[] _activeTexture;
         private Dictionary<Particle.TYPE, Color> _particleColors;
         
+        private Dictionary<int, Vector2Int[]> _mouseRadiusPositions;
+
+        
         //Unity Functions
         //============================================================================================================//
 
@@ -50,6 +53,8 @@ namespace PowderToy
 
         public void Init(Vector2Int size)
         {
+            PreWarmMouseRadius();
+            
             //Setup Color references
             //------------------------------------------------------------------//
 
@@ -97,16 +102,17 @@ namespace PowderToy
             for (int i = 0; i < count; i++)
             {
                 var particle = particles[i];
-                var coordinate = particle.Coordinate;
+                var xCoord = particle.XCoord;
+                var yCoord = particle.YCoord;
 
                 /*if (USE_DEBUG_VIEW)
                     _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] =
                         Color.Lerp(Color.green, Color.red, i / (float)count);
                 else*/
                 if(DEBUG_hightlightIndex == i)
-                    _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = Color.magenta;
+                    _activeTexture[CoordinateToIndex(xCoord, yCoord)] = Color.magenta;
                 else
-                    _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] = _particleColors[particle.Type];
+                    _activeTexture[CoordinateToIndex(xCoord, yCoord)] = _particleColors[particle.Type];
 
             }
 
@@ -114,29 +120,89 @@ namespace PowderToy
             SetPixels(_activeTexture);
         }
 
+        private void PreWarmMouseRadius()
+        {
+            _mouseRadiusPositions = new Dictionary<int, Vector2Int[]>();
+            //Radius 1 => 12
+            //Radius 2 => 28
+            //Radius 3 => 52
+            //Radius 4 => 80
+            //Radius 5 => 112
+            //Radius 6 => 160
+            //Radius 7 => 204
+            
+            //FIXME This is what I want to do
+            /*var counts = new byte[] { 12, 28, 52, 80, 112, 160, 204 };
+            
+            for (int i = 1; i <= 7; i++)
+            {
+                var rSqr = i * i;
+                
+                var coordinateCount = counts[i - 1];
+                var coordinates = new Vector2Int[coordinateCount];
+                var counter = 0;
+                
+                coordinates[counter++] = Vector2Int.zero;
+
+                for (var x = 1; x <= i; x++)
+                {
+                    var d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
+                    for (var y = 1; y <= d; y++, counter += 4)
+                    {
+                        coordinates[counter] = new Vector2Int(x, y);
+                        coordinates[counter + 1] = new Vector2Int(-x, y);
+                        coordinates[counter + 2] = new Vector2Int(x, -y);
+                        coordinates[counter + 3] = new Vector2Int(-x, -y);
+                    }
+                }
+
+                _mouseRadiusPositions.Add(i, coordinates);
+            }*/
+
+            for (int i = 1; i <= 7; i++)
+            {
+                var coordinates = new List<Vector2Int>();
+                var rSqr = i * i;
+
+                for (var x = 0; x <= i; x++)
+                {
+                    var d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
+                    for (var y = 0; y <= d; y++)
+                    {
+                        //FIXME Move this to pre-made array to avoid alloc issues
+                        coordinates.Add(new Vector2Int(x, y));
+                        coordinates.Add(new Vector2Int(-x, y));
+                        coordinates.Add(new Vector2Int(x, -y));
+                        coordinates.Add(new Vector2Int(-x, -y));
+                    }
+                }
+                
+                _mouseRadiusPositions.Add(i, coordinates.ToArray());
+            }
+
+        }
+
         private void UpdateMousePos(in int radius, in Color color)
         {
-            int CoordinateToIndex(in int x, in int y) => (_size.x * y) + x;
+            var sizeX = _size.x;
+            
+            //int CoordinateToIndex(in int x, in int y) => (sizeX * y) + x;
+            var mouseX = ParticleSpawner.MouseCoordinate.x;
+            var mouseY = ParticleSpawner.MouseCoordinate.y;
 
             if (radius == 0)
             {
-                _activeTexture
-                    [CoordinateToIndex(ParticleSpawner.MouseCoordinate.x, ParticleSpawner.MouseCoordinate.y)] = color;
+                var index = (sizeX * mouseY) + mouseX;
+                _activeTexture[index] = color;
                 return;
             }
 
-            int px, nx, py, ny, d;
+            /*int px, nx, py, ny, d;
             var coordinates = new List<Vector2Int>();
             var mouseCoord = ParticleSpawner.MouseCoordinate;
             var rSqr = radius * radius;
             
-            //Radius 2 => 12
-            //Radius 3 => 28
-            //Radius 4 => 52
-            //Radius 5 => 80
-            //Radius 6 => 112
-            //Radius 7 => 160
-            //Radius 8 => 204
+            
 
             
             for (var x = 0; x <= radius; x++)
@@ -156,17 +222,23 @@ namespace PowderToy
                     coordinates.Add(new Vector2Int(px, ny));
                     coordinates.Add(new Vector2Int(nx, ny));
                 }
-            }
-            Debug.Log($"{radius} => {coordinates.Count}");
-            for (int i = 0; i < coordinates.Count; i++)
+            }*/
+
+            var coordinates = _mouseRadiusPositions[radius];
+
+            //Debug.Log($"{radius} => {coordinates.Count}");
+            for (int i = 0; i < coordinates.Length; i++)
             {
                 var coord = coordinates[i];
-                if (coord.x >= _size.x || coord.x < 0)
-                    continue;
-                if (coord.y >= _size.y || coord.y < 0)
-                    continue;
+                var newX = coord.x + mouseX;
+                var newY = coord.y + mouseY;
                 
-                _activeTexture[CoordinateToIndex(coord.x, coord.y)] = color;
+                if (newX >= _size.x || newX < 0)
+                    continue;
+                if (newY>= _size.y || newY < 0)
+                    continue;
+                var index = (sizeX * newY) + newX;
+                _activeTexture[index] = color;
             }
         }
 
