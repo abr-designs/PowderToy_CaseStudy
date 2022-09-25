@@ -61,9 +61,11 @@ namespace PowderToy
         //============================================================================================================//        
         
         public static Action<Vector2Int> OnInit;
+
+        public int ParticleCount => _particleCount;
         
-        [SerializeField, ReadOnly, TitleGroup("Debugging")]
-        private int particleCount;
+        [SerializeField, ReadOnly, TitleGroup("Debug Info")]
+        private int _particleCount;
         
         [SerializeField, Min(0), DisableInPlayMode, TitleGroup("Grid Properties")]
         private Vector2Int size;
@@ -132,7 +134,7 @@ namespace PowderToy
             UpdateParticles2();
             UpdateParticleRows();
 
-            _particleRenderer.UpdateTexture(_activeParticles, particleCount);
+            _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
         }
 
         
@@ -144,7 +146,7 @@ namespace PowderToy
             if(IsSpaceOccupied(newX, newY))
                 return;
             
-            var newIndex = particleCount++;
+            var newIndex = _particleCount++;
             var newColor = _particleRenderer.GetParticleColor(type);
             var newParticle = new Particle(type, newColor, newIndex, newX, newY);
 
@@ -220,7 +222,7 @@ namespace PowderToy
 
         private void UpdateParticleRows()
         {
-            for (int i = 0; i < particleCount; i++)
+            for (int i = 0; i < _particleCount; i++)
             {
                 var particle = _activeParticles[i];
                 
@@ -235,7 +237,7 @@ namespace PowderToy
 
         private void ClearGrid()
         {
-            particleCount = 0;
+            _particleCount = 0;
             var count = _gridPositions.Length;
 
             for (int i = 0; i < count; i++)

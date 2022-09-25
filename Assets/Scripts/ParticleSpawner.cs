@@ -1,9 +1,12 @@
+using System;
 using UnityEngine;
 
 namespace PowderToy
 {
     public class ParticleSpawner : MonoBehaviour
     {
+        public static Action<Particle.TYPE> OnParticleTypeSelected;
+        
         private const int MIN_RADIUS = 0;
         private const int MAX_RADIUS = 7;
         public static Vector2Int MouseCoordinate { get; private set; }
@@ -32,6 +35,9 @@ namespace PowderToy
         {
             _particleGrid = FindObjectOfType<Grid>();
             SpawnRadius = 0;
+            
+            //Make sure that we announce the selected type on start
+            OnParticleTypeSelected?.Invoke(selectedType);
         }
 
         // Update is called once per frame
@@ -121,6 +127,7 @@ namespace PowderToy
 
 
             selectedType = (Particle.TYPE)newType;
+            OnParticleTypeSelected?.Invoke(selectedType);
         }
         
         //UpdateScreenPosition
