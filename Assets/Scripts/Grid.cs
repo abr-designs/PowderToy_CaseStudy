@@ -156,7 +156,19 @@ namespace PowderToy
                 particleIndex = newParticle.Index
             };
 
-            _particleRowContainers[newY].AddParticle(newIndex);
+            switch (newParticle.Material)
+            {
+                //Don't want to track things that will never move
+                case Particle.MATERIAL.SOLID:
+                    break;
+                case Particle.MATERIAL.POWDER:
+                case Particle.MATERIAL.LIQUID:
+                case Particle.MATERIAL.GAS:
+                    _particleRowContainers[newY].AddParticle(newIndex);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
         
         private void UpdateParticles2()
@@ -174,13 +186,18 @@ namespace PowderToy
 
                     bool didUpdate;
 
-                    switch (particle.Type)
+                    switch (particle.Material)
                     {
-                        case Particle.TYPE.SAND:
-                            didUpdate = UpdateSandParticle(ref particle);
+                        case Particle.MATERIAL.SOLID:
+                            continue;
+                        case Particle.MATERIAL.POWDER:
+                            didUpdate = UpdatePowderParticle(ref particle);
                             break;
-                        case Particle.TYPE.WATER:
-                            didUpdate = UpdateWaterParticle(ref particle);
+                        case Particle.MATERIAL.LIQUID:
+                            didUpdate = UpdateLiquidParticle(ref particle);
+                            break;
+                        case Particle.MATERIAL.GAS:
+                            didUpdate = UpdateGasParticle(ref particle);
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();
@@ -207,6 +224,8 @@ namespace PowderToy
             {
                 var particle = _activeParticles[i];
                 
+                if(particle.Material == Particle.MATERIAL.SOLID)
+                    continue;
                 if(particle.Asleep)
                     continue;
                 
@@ -272,7 +291,7 @@ namespace PowderToy
         
         //============================================================================================================//
 
-        private bool UpdateSandParticle(ref Particle particle)
+        private bool UpdatePowderParticle(ref Particle particle)
         {
             //var originalCoordinate = particle.Coordinate;
             var originalX = particle.XCoord;
@@ -367,7 +386,7 @@ namespace PowderToy
             }*/
         }
         
-        private bool UpdateWaterParticle(ref Particle particle)
+        private bool UpdateLiquidParticle(ref Particle particle)
         {
             //var coordinate = particle.Coordinate;
             var originalX = particle.XCoord;
@@ -405,6 +424,53 @@ namespace PowderToy
             if (TrySetNewPosition(-1, -1, ref particle))
                 return true;
             if (TrySetNewPosition(1, -1, ref particle))
+                return true;
+            if (TrySetNewPosition(-1, 0, ref particle))
+                return true;
+            if (TrySetNewPosition(1, 0, ref particle))
+                return true;
+            
+            return false;
+        }
+        
+        private bool UpdateGasParticle(ref Particle particle)
+        {
+            //var coordinate = particle.Coordinate;
+            var originalX = particle.XCoord;
+            var originalY = particle.YCoord;
+
+            //------------------------------------------------------------------//
+            
+            bool TrySetNewPosition(in int xOffset, in int yOffset, ref Particle myParticle)
+            {
+                //var testCoordinate = myParticle.Coordinate + offset;
+                var newX = originalX + xOffset;
+                var newY = originalY + yOffset;
+                //IF the space is occupied, leave early
+                if (IsSpaceOccupied(newX, newY)) 
+                    return false;
+                
+                //myParticle.Coordinate += offset;
+                myParticle.XCoord = newX;
+                myParticle.YCoord = newY;
+
+                _gridPositions[CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
+                
+                _gridPositions[CoordinateToIndex(newX, newY)] = new GridPos
+                {
+                    IsOccupied = true,
+                    particleIndex = myParticle.Index
+                };
+                return true;
+            }
+            
+            //------------------------------------------------------------------//
+            
+            if (TrySetNewPosition(0, 1, ref particle))
+                return true;
+            if (TrySetNewPosition(-1, 1, ref particle))
+                return true;
+            if (TrySetNewPosition(1, 1, ref particle))
                 return true;
             if (TrySetNewPosition(-1, 0, ref particle))
                 return true;

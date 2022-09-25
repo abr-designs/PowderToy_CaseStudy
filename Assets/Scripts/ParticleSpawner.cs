@@ -48,6 +48,9 @@ namespace PowderToy
                 SpawnRadius--;
             else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < MAX_RADIUS)
                 SpawnRadius++;
+
+            if (Input.GetKeyDown(KeyCode.Tab))
+                ToggleSpawnType();
         }
 
         private void OnDisable()
@@ -107,6 +110,17 @@ namespace PowderToy
             }
 
             //_mouseDown = false;
+        }
+
+        private void ToggleSpawnType()
+        {
+            var newType = (int)selectedType;
+            newType++;
+            if (newType > 4)
+                newType = 1;
+
+
+            selectedType = (Particle.TYPE)newType;
         }
         
         //UpdateScreenPosition
