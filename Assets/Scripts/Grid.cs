@@ -13,6 +13,10 @@ namespace PowderToy
         //Structs
         //============================================================================================================//
         
+        /// <summary>
+        /// Simple struct that contains a bool for current grid position occupancy, and a pointer to the Active Particle
+        /// index
+        /// </summary>
         public struct GridPos
         {
             public static readonly GridPos Empty = new GridPos
@@ -25,6 +29,10 @@ namespace PowderToy
             public int particleIndex;
         }
 
+        /// <summary>
+        /// Container for particles 0 -> GridSize.x on a single row. Used to effeciently navigate grid of sorted particles
+        /// by Y position
+        /// </summary>
         private class ParticleColContainer
         {
             public readonly uint[] ParticleIndices;
@@ -44,33 +52,32 @@ namespace PowderToy
 
             public void Clear()
             {
+                //If we just set the count back to 0 we can avoid having to clear the entire array
                 ParticleCount = 0;
             }
         }
 
+        //Properties
         //============================================================================================================//        
         
         public static Action<Vector2Int> OnInit;
         
-        [SerializeField, ReadOnly]
+        [SerializeField, ReadOnly, TitleGroup("Debugging")]
         private int particleCount;
-
-        private ParticleRenderer _particleRenderer;
         
-        [SerializeField, Min(0), DisableInPlayMode]
+        [SerializeField, Min(0), DisableInPlayMode, TitleGroup("Grid Properties")]
         private Vector2Int size;
-
+        //We save the size as static ints to reduce time it takes to call get from Vector2Int
         private static int _sizeX;
         private static int _sizeY;
 
-        private ParticleColContainer[] _rowsContainers;
-        //private bool _firstReady;
+        private ParticleRenderer _particleRenderer;
 
-        //FIXME This probably needs to be a list of pointers, not the data
+        //Collection of Grid Elements
+        //------------------------------------------------//
+        private Particle[] _activeParticles;
+        private ParticleColContainer[] _particleRowContainers;
         private GridPos[] _gridPositions;
-        private List<Particle> _activeParticles;
-
-        //private CompareParticleAscending _particleComparer;
 
         //Unity Functions
         //============================================================================================================//
@@ -84,23 +91,24 @@ namespace PowderToy
         private void Start()
         {
             _gridPositions = new GridPos[size.x * size.y];
-            _activeParticles = new List<Particle>();
-            //_particleComparer = new CompareParticleAscending();
+            _activeParticles = new Particle[size.x * size.y];
 
-            _particleRenderer = FindObjectOfType<ParticleRenderer>();
             _sizeX = size.x;
             _sizeY = size.y;
 
             //Setup column Containers
             //------------------------------------------------//
-            _rowsContainers = new ParticleColContainer[_sizeY];
+            _particleRowContainers = new ParticleColContainer[_sizeY];
             var sizeX = (uint)_sizeX;
             for (var i = 0; i < _sizeY; i++)
             {
-                _rowsContainers[i] = new ParticleColContainer(sizeX);
+                _particleRowContainers[i] = new ParticleColContainer(sizeX);
             }
 
             //------------------------------------------------//
+
+            _particleRenderer = FindObjectOfType<ParticleRenderer>();
+
             OnInit?.Invoke(size);
         }
 
@@ -121,14 +129,13 @@ namespace PowderToy
         
         private void OnTick()
         {
-            /*if (_firstReady) UpdateParticles();
-            else */
             UpdateParticles2();
             UpdateParticleRows();
 
-            _particleRenderer.UpdateTexture(_activeParticles);
+            _particleRenderer.UpdateTexture(_activeParticles, particleCount);
         }
 
+        
         public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
         {
             var newX = coordinate.x;
@@ -137,16 +144,11 @@ namespace PowderToy
             if(IsSpaceOccupied(newX, newY))
                 return;
             
-            var newIndex = _activeParticles.Count;
-            var newParticle = new Particle
-            {
-                XCoord = newX,
-                YCoord = newY,
-                Type = type,
-                Index =  newIndex
-            };
-            
-            _activeParticles.Add(newParticle);
+            var newIndex = particleCount++;
+            var newColor = _particleRenderer.GetParticleColor(type);
+            var newParticle = new Particle(type, newColor, newIndex, newX, newY);
+
+            _activeParticles[newIndex] = newParticle;
 
             _gridPositions[CoordinateToIndex(newX, newY)] = new GridPos
             {
@@ -154,58 +156,16 @@ namespace PowderToy
                 particleIndex = newParticle.Index
             };
 
-            particleCount++;
-            _rowsContainers[newY].AddParticle(newIndex);
+            _particleRowContainers[newY].AddParticle(newIndex);
         }
-
-        /*private void UpdateParticles()
-        {
-            var count = _activeParticles.Count;
-            //FIXME Don't create list here, I should be able to have a single list created through spawn, use SetCapacity
-            var sortedParticles = new List<Particle>(_activeParticles);
-            //FIXME I should be able to sort as I update for next frame
-            sortedParticles.Sort(_particleComparer);
-            
-            for (int i = 0; i < count; i++)
-            {
-                var particle = sortedParticles[i];
-
-                if(particle.Asleep)
-                    continue;
-
-                bool didUpdate;
-
-                switch (particle.Type)
-                {
-                    case Particle.TYPE.SAND:
-                        didUpdate = UpdateSandParticle(ref particle);
-                        break;
-                    case Particle.TYPE.WATER:
-                        didUpdate = UpdateWaterParticle(ref particle);
-                        break;
-                    default:
-                        throw new ArgumentOutOfRangeException();
-                }
-
-                if (didUpdate)
-                {
-                    _activeParticles[particle.Index] = particle;
-                    continue;
-                }
-
-                /*if(particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
-                    particle.Asleep = true;
-                
-                _activeParticles[i] = particle;#1#
-            }
-        }*/
+        
         private void UpdateParticles2()
         {
-            for (int i = 0; i < _sizeY; i++)
+            for (var i = 0; i < _sizeY; i++)
             {
-                var container = _rowsContainers[i].ParticleIndices;
-                var count = _rowsContainers[i].ParticleCount;
-                for (int ii = 0; ii < count; ii++)
+                var container = _particleRowContainers[i].ParticleIndices;
+                var count = _particleRowContainers[i].ParticleCount;
+                for (var ii = 0; ii < count; ii++)
                 {
                     var particle = _activeParticles[(int)container[ii]];
 
@@ -237,27 +197,26 @@ namespace PowderToy
                         particle.Asleep = true;
                 }
                 
-                _rowsContainers[i].Clear();
+                _particleRowContainers[i].Clear();
             }
         }
 
         private void UpdateParticleRows()
         {
-            var count = _activeParticles.Count;
-            for (int i = 0; i < count; i++)
+            for (int i = 0; i < particleCount; i++)
             {
                 var particle = _activeParticles[i];
                 
                 if(particle.Asleep)
                     continue;
                 
-                _rowsContainers[particle.YCoord].AddParticle(particle.Index);
+                _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
             }
         }
 
         private void ClearGrid()
         {
-            _activeParticles.Clear();
+            particleCount = 0;
             var count = _gridPositions.Length;
 
             for (int i = 0; i < count; i++)
@@ -265,10 +224,10 @@ namespace PowderToy
                 _gridPositions[i] = GridPos.Empty;
             }
 
-            count = _rowsContainers.Length;
+            count = _particleRowContainers.Length;
             for (int i = 0; i < count; i++)
             {
-                _rowsContainers[i].Clear();
+                _particleRowContainers[i].Clear();
             }
         }
         

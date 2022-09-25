@@ -1,7 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace PowderToy
@@ -12,9 +8,6 @@ namespace PowderToy
         private const int MAX_RADIUS = 7;
         public static Vector2Int MouseCoordinate { get; private set; }
         public static int SpawnRadius { get; private set; }
-
-        [SerializeField, ReadOnly]
-        private int DEBUG_SpawnRadius;
 
         [SerializeField]
         private Particle.TYPE selectedType;
@@ -55,8 +48,6 @@ namespace PowderToy
                 SpawnRadius--;
             else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < MAX_RADIUS)
                 SpawnRadius++;
-
-            DEBUG_SpawnRadius = SpawnRadius;
         }
 
         private void OnDisable()

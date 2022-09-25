@@ -1,45 +1,58 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using Sirenix.OdinInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace PowderToy
 {
     public class ParticleRenderer : MonoBehaviour
     {
         private static readonly int BaseMapPropertyID = Shader.PropertyToID("_BaseMap");
+        
+        private static readonly Color32 black = new Color32(0, 0, 0, 1);
+        private static readonly Color32 red = new Color32(255, 0, 0, 1);
+        private static readonly Color32 magenta = new Color32(255, 0, 255, 1);
 
+        //Structs
+        //============================================================================================================//
+        
+        /// <summary>
+        /// Stores gradient for Particle type color
+        /// </summary>
         [Serializable]
         private struct ParticleColor
         {
             public Particle.TYPE Type;
-            public Color Color;
+            public Gradient Gradient;
+
+            public Color32 GetColor()
+            {
+                return Gradient.Evaluate(Random.value);
+            }
         }
+        
         //Properties
         //============================================================================================================//
-        private Vector2Int _size;
+        private static int _sizeX;
+        private static int _sizeY;
 
-        [SerializeField]
-        private bool USE_DEBUG_VIEW;
-
-        [Min(0), SerializeField]
-        private int DEBUG_hightlightIndex;
-
-        [SerializeField] private Renderer targetRenderer;
+        [SerializeField, TitleGroup("Render Info")]
+        private Renderer targetRenderer;
         private Material _sharedMaterial;
 
-        //[SerializeField] private Color setColor = Color.black;
-        [SerializeField]
+        [SerializeField, TitleGroup("Particle Colors")]
         private ParticleColor[] particleColors;
+        private Dictionary<Particle.TYPE, ParticleColor> _particleColors;
 
+        //Texture color array
+        //------------------------------------------------//    
         private Texture2D _testTexture;
-
-        //private Texture2D _emptyTexture;
-        private Color[] _blankTexture;
-        private Color[] _activeTexture;
-        private Dictionary<Particle.TYPE, Color> _particleColors;
+        private Color32[] _blankTexture;
+        private Color32[] _activeTexture;
         
         private Dictionary<int, Vector2Int[]> _mouseRadiusPositions;
-
         
         //Unity Functions
         //============================================================================================================//
@@ -58,23 +71,24 @@ namespace PowderToy
             //Setup Color references
             //------------------------------------------------------------------//
 
-            _particleColors = new Dictionary<Particle.TYPE, Color>();
+            _particleColors = new Dictionary<Particle.TYPE, ParticleColor>();
             for (int i = 0; i < particleColors.Length; i++)
             {
                 var data = particleColors[i];
-                _particleColors.Add(data.Type, data.Color);
+                _particleColors.Add(data.Type, data);
             }
             
             //Setup Texture Size
             //------------------------------------------------------------------//
 
-            _size = size;
+            _sizeX = size.x;
+            _sizeY = size.y;
             
-            _activeTexture = new Color[_size.x * _size.y];
-            _blankTexture = new Color[_size.x * _size.y];
+            _activeTexture = new Color32[_sizeX * _sizeY];
+            _blankTexture = new Color32[_sizeX * _sizeY];
             for (var i = 0; i < _blankTexture.Length; i++)
             {
-                _blankTexture[i] = Color.black;
+                _blankTexture[i] = black;
             }
             
             //------------------------------------------------------------------//
@@ -83,7 +97,7 @@ namespace PowderToy
 
             _sharedMaterial = targetRenderer.sharedMaterial;
 
-            _testTexture = new Texture2D(_size.x, _size.y, TextureFormat.RGBA32, false)
+            _testTexture = new Texture2D(_sizeX, _sizeY, TextureFormat.RGBA32, false)
             {
                 filterMode = FilterMode.Point,
                 wrapMode = TextureWrapMode.Clamp
@@ -92,33 +106,34 @@ namespace PowderToy
             _sharedMaterial.SetTexture(BaseMapPropertyID, _testTexture);
         }
 
-        public void UpdateTexture(in IReadOnlyList<Particle> particles)
+        public void UpdateTexture(in Particle[] particles, in int count)
         {
-            int CoordinateToIndex(in int x, in int y) => (_size.x * y) + x;
+            int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
             
             _blankTexture.CopyTo(_activeTexture, 0);
             
-            var count = particles.Count;
+            //var count = particles.Count;
             for (int i = 0; i < count; i++)
             {
                 var particle = particles[i];
                 var xCoord = particle.XCoord;
                 var yCoord = particle.YCoord;
 
-                /*if (USE_DEBUG_VIEW)
-                    _activeTexture[CoordinateToIndex(coordinate.x, coordinate.y)] =
-                        Color.Lerp(Color.green, Color.red, i / (float)count);
-                else*/
-                if(DEBUG_hightlightIndex == i)
-                    _activeTexture[CoordinateToIndex(xCoord, yCoord)] = Color.magenta;
-                else
-                    _activeTexture[CoordinateToIndex(xCoord, yCoord)] = _particleColors[particle.Type];
-
+                _activeTexture[CoordinateToIndex(xCoord, yCoord)] = particle.Color;
             }
 
-            UpdateMousePos(ParticleSpawner.SpawnRadius, Color.red);
+            UpdateMousePos(ParticleSpawner.SpawnRadius, red);
             SetPixels(_activeTexture);
         }
+
+        //============================================================================================================//
+
+        public Color32 GetParticleColor(in Particle.TYPE type)
+        {
+            return _particleColors[type].GetColor();
+        }
+        
+        //============================================================================================================//
 
         private void PreWarmMouseRadius()
         {
@@ -177,75 +192,48 @@ namespace PowderToy
                     }
                 }
                 
-                _mouseRadiusPositions.Add(i, coordinates.ToArray());
+                _mouseRadiusPositions.Add(i, 
+                    coordinates
+                    .Distinct()
+                    .ToArray());
             }
 
         }
 
-        private void UpdateMousePos(in int radius, in Color color)
+        private void UpdateMousePos(in int radius, in Color32 color)
         {
-            var sizeX = _size.x;
-            
             //int CoordinateToIndex(in int x, in int y) => (sizeX * y) + x;
             var mouseX = ParticleSpawner.MouseCoordinate.x;
             var mouseY = ParticleSpawner.MouseCoordinate.y;
 
             if (radius == 0)
             {
-                var index = (sizeX * mouseY) + mouseX;
+                var index = (_sizeX * mouseY) + mouseX;
                 _activeTexture[index] = color;
                 return;
             }
 
-            /*int px, nx, py, ny, d;
-            var coordinates = new List<Vector2Int>();
-            var mouseCoord = ParticleSpawner.MouseCoordinate;
-            var rSqr = radius * radius;
-            
-            
-
-            
-            for (var x = 0; x <= radius; x++)
-            {
-                d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
-                for (var y = 0; y <= d; y++)
-                {
-                    px = mouseCoord.x + x;
-                    nx = mouseCoord.x - x;
-                    
-                    py = mouseCoord.y + y;
-                    ny = mouseCoord.y - y;
-                    
-                    //FIXME Move this to pre-made array to avoid alloc issues
-                    coordinates.Add(new Vector2Int(px, py));
-                    coordinates.Add(new Vector2Int(nx, py));
-                    coordinates.Add(new Vector2Int(px, ny));
-                    coordinates.Add(new Vector2Int(nx, ny));
-                }
-            }*/
-
             var coordinates = _mouseRadiusPositions[radius];
 
-            //Debug.Log($"{radius} => {coordinates.Count}");
             for (int i = 0; i < coordinates.Length; i++)
             {
                 var coord = coordinates[i];
                 var newX = coord.x + mouseX;
                 var newY = coord.y + mouseY;
                 
-                if (newX >= _size.x || newX < 0)
+                if (newX >= _sizeX || newX < 0)
                     continue;
-                if (newY>= _size.y || newY < 0)
+                if (newY>= _sizeY || newY < 0)
                     continue;
-                var index = (sizeX * newY) + newX;
+                var index = (_sizeX * newY) + newX;
                 _activeTexture[index] = color;
             }
         }
 
-        private void SetPixels(in Color[] colors)
+        private void SetPixels(in Color32[] colors)
         {
             //Set the new change
-            _testTexture.SetPixels(colors);
+            _testTexture.SetPixels32(colors);
             //Push to the texture
             _testTexture.Apply();
         }

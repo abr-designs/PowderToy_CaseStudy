@@ -17,6 +17,8 @@ namespace PowderToy
         }
 
         public TYPE Type;
+        public readonly Color32 Color; 
+        
         public int Index;
         public int SleepCounter;
         //public bool IsOccupied;
@@ -24,6 +26,19 @@ namespace PowderToy
         //public Vector2Int Coordinate;
         public int XCoord;
         public int YCoord;
+
+        public Particle(in TYPE type, in Color32 color, in int index, in int x, in int y)
+        {
+            SleepCounter = 0;
+            Asleep = false;
+
+            Type = type;
+            Color = color;
+            Index = index;
+
+            XCoord = x;
+            YCoord = y;
+        }
     }
     
     /*public class CompareParticleAscending : IComparer<Particle>
