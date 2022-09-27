@@ -50,6 +50,51 @@ namespace PowderToy
                 ParticleIndices[ParticleCount++] = index;
             }
 
+            public void RemoveParticle(in uint indexToRemove)
+            {
+                var shiftCount = 0;
+                for (int i = 0; i < ParticleCount; i++)
+                {
+                    var hasFoundItem = ParticleIndices[i] != indexToRemove;
+                    if (shiftCount > 0 && hasFoundItem == false)
+                    {
+                        ParticleIndices[i - shiftCount] = ParticleIndices[i];
+                    }
+                    if(hasFoundItem == false)
+                        continue;
+
+                    shiftCount++;
+                }
+
+                if (shiftCount == 0 && ParticleCount > 1)
+                    throw new Exception("Expect to kill Particle from Array");
+
+                ParticleCount--;
+            }
+
+            public void RemoveParticles(in HashSet<uint> indices)
+            {
+                var originalCount = indices.Count;
+                
+                var shiftCount = 0;
+                for (int i = 0; i < ParticleCount; i++)
+                {
+                    var index = ParticleIndices[i];
+                    var hasFoundItem = indices.Contains(index);
+                    if (shiftCount > 0 && hasFoundItem == false)
+                    {
+                        ParticleIndices[i - shiftCount] = index;
+                    }
+                    if(hasFoundItem == false)
+                        continue;
+
+                    shiftCount++;
+                    indices.Remove(index);
+                }
+
+                ParticleCount -= (uint)originalCount;
+            }
+
             public void Clear()
             {
                 //If we just set the count back to 0 we can avoid having to clear the entire array
@@ -194,13 +239,14 @@ namespace PowderToy
             
             _activeParticles[toDelete.Index] = Particle.Empty;
             _gridPositions[CoordinateToIndex(delX, delY)] = GridPos.Empty;
+            //FIXME Need a nice way of call this from a group, current issue is potential allocation size
+            _particleRowContainers[delY].RemoveParticle((uint)toDelete.Index);
 
             if (updateActiveParticles)
             {
                 _particleCount--;
-            
                 CompressActiveParticles();
-                UpdateParticleRows(true);
+                //UpdateParticleRows();
             }
             
             return true;
@@ -226,7 +272,8 @@ namespace PowderToy
             }
             
             CompressActiveParticles();
-            UpdateParticleRows(true);
+            //_particleRowContainers[delY].RemoveParticles((uint)toDelete.Index);
+            //UpdateParticleRows();
         }
 
         /// <summary>
@@ -334,11 +381,11 @@ namespace PowderToy
             }
         }
 
-        private void UpdateParticleRows(in bool forceClearContainers = false)
+        private void UpdateParticleRows()
         {
             //---------------------------------------------------//
 
-            //FIXME Instead of doing this, I should be able to apply a compression move on the array using the changed rows
+            /*//FIXME Instead of doing this, I should be able to apply a compression move on the array using the changed rows
             void ForceClearRowContainers()
             {
                 var count = _particleRowContainers.Length;
@@ -351,7 +398,7 @@ namespace PowderToy
             //---------------------------------------------------//
             
             if (forceClearContainers)
-                ForceClearRowContainers();
+                ForceClearRowContainers();*/
             
             for (int i = 0; i < _particleCount; i++)
             {
@@ -366,6 +413,11 @@ namespace PowderToy
                 
                 _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
             }
+        }
+
+        private void RemoveIndexFromParticleRow(in int yPos, in int particleIndex)
+        {
+            
         }
 
         //============================================================================================================//

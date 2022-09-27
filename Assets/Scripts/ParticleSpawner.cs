@@ -5,6 +5,7 @@ using UnityEngine;
 
 namespace PowderToy
 {
+    //TODO This needs to be a queue, race conditions causing issues with Updates
     public class ParticleSpawner : MonoBehaviour
     {
         public static Action<Particle.TYPE> OnParticleTypeSelected;
