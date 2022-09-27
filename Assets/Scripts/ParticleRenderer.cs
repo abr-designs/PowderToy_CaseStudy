@@ -11,9 +11,10 @@ namespace PowderToy
     {
         private static readonly int BaseMapPropertyID = Shader.PropertyToID("_BaseMap");
         
-        private static readonly Color32 black = new Color32(0, 0, 0, 1);
-        private static readonly Color32 red = new Color32(255, 0, 0, 1);
-        private static readonly Color32 magenta = new Color32(255, 0, 255, 1);
+        private static readonly Color32 black = new Color32(0, 0, 0, 255);
+        private static readonly Color32 red = new Color32(255, 0, 0, 255);
+        private static readonly Color32 green = new Color32(0,255,0,255);
+        private static readonly Color32 magenta = new Color32(255, 0, 255, 255);
 
         //Structs
         //============================================================================================================//
@@ -123,6 +124,20 @@ namespace PowderToy
             }
 
             UpdateMousePos(ParticleSpawner.SpawnRadius, red);
+            SetPixels(_activeTexture);
+        }
+
+        public void DEBUG_DisplayOccupiedSpace(in Grid.GridPos[] gridPositions)
+        {
+            var count = gridPositions.Length;
+
+            _blankTexture.CopyTo(_activeTexture, 0);
+            
+            for (int i = 0; i < count; i++)
+            {
+                _activeTexture[i] = gridPositions[i].IsOccupied ? red : green;
+            }
+            
             SetPixels(_activeTexture);
         }
 

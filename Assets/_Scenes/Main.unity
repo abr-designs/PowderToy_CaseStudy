@@ -382,6 +382,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _particleCount: 0
+  allowSleeping: 0
   size: {x: 300, y: 200}
 --- !u!114 &1189435741
 MonoBehaviour:
@@ -506,6 +507,12 @@ MonoBehaviour:
   particleCountText: {fileID: 2143959632}
   frameRateText: {fileID: 1999190258}
   tickTime: 0.5
+  particleNames:
+  - NONE
+  - SAND
+  - WATER
+  - WOOD
+  - STEAM
 --- !u!224 &1268238380
 RectTransform:
   m_ObjectHideFlags: 0
@@ -785,10 +792,10 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.011173185
-    y: 0.011173184
-    width: 0.9776536
-    height: 0.9776536
+    x: 0.014038877
+    y: 0.012955465
+    width: 0.9719222
+    height: 0.9716599
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60

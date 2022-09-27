@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace PowderToy
@@ -21,7 +23,6 @@ namespace PowderToy
         private bool _mouseDown;
 
         private Grid _particleGrid;
-        
         //Unity Functions
         //============================================================================================================//
 
@@ -79,15 +80,34 @@ namespace PowderToy
             TrySpawnNewParticle();
         }
 
+        //TODO Should this be passed as a queued request?
+        //Currently seems to be fighting with the other update methods
         private void TrySpawnNewParticle()
         {
             if (_mouseDown == false)
                 return;
-
-            if (SpawnRadius == 0)
-                _particleGrid.SpawnParticle(selectedType, MouseCoordinate);
+            
+            //If the eraser is selected
+            if (selectedType == Particle.TYPE.NONE)
+            {
+                if (SpawnRadius == 0)
+                    _particleGrid.RemoveParticle(MouseCoordinate);
+                else
+                {
+                    var removeRadius = TryRemoveParticlesInRadius(SpawnRadius);
+                    _particleGrid.RemoveParticles(removeRadius);
+                }
+                
+            }
             else
-                TrySpawnNewParticlesInRadius(SpawnRadius);
+            {
+                if (SpawnRadius == 0)
+                    _particleGrid.SpawnParticle(selectedType, MouseCoordinate);
+                else
+                    TrySpawnNewParticlesInRadius(SpawnRadius);
+            }
+
+            
         }
 
         private void TrySpawnNewParticlesInRadius(in int radius)
@@ -117,13 +137,43 @@ namespace PowderToy
 
             //_mouseDown = false;
         }
+        //FIXME I should be saving this radius size array elsewhere
+        private Vector2Int[] TryRemoveParticlesInRadius(in int radius)
+        {
+            int x, y, px, nx, py, ny, d;
+            
+            var coord = MouseCoordinate;
+            var rSqr = radius * radius;
+            var coordinates = new List<Vector2Int>();
+
+            for (x = 0; x <= radius; x++)
+            {
+                d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
+                for (y = 0; y <= d; y++)
+                {
+                    px = coord.x + x;
+                    nx = coord.x - x;
+                    
+                    py = coord.y + y;
+                    ny = coord.y - y;
+
+                    coordinates.Add(new Vector2Int(px, py));
+                    coordinates.Add(new Vector2Int(nx, py));
+                    coordinates.Add(new Vector2Int(px, ny));
+                    coordinates.Add(new Vector2Int(nx, ny));
+                }
+            }
+
+            //_mouseDown = false;
+            return coordinates.Distinct().ToArray();
+        }
 
         private void ToggleSpawnType()
         {
             var newType = (int)selectedType;
             newType++;
             if (newType > 4)
-                newType = 1;
+                newType = 0;
 
 
             selectedType = (Particle.TYPE)newType;

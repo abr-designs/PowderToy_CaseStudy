@@ -5,6 +5,7 @@ using PowderToy;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Grid = PowderToy.Grid;
 
 public class UIManager : MonoBehaviour
@@ -25,6 +26,9 @@ public class UIManager : MonoBehaviour
 
     private int _maxParticleCount;
     private Grid _particleGrid;
+
+    [SerializeField, ReadOnly]
+    private string[] particleNames;
 
     //Unity Functions
     //============================================================================================================//
@@ -72,7 +76,7 @@ public class UIManager : MonoBehaviour
     private void OnNewSelectedType(Particle.TYPE type)
     {
         //TODO Might want to store the particle type names somewhere
-        selectedTypeText.text = $"Spawn Type: {type}";
+        selectedTypeText.text = $"Spawn Type: {particleNames[(int)type]}";
     }
 
     private void UpdateParticleCount()
@@ -90,4 +94,12 @@ public class UIManager : MonoBehaviour
     }
 
     //============================================================================================================//
+#if  UNITY_EDITOR
+
+    private void OnValidate()
+    {
+        particleNames = Enum.GetNames(typeof(Particle.TYPE));
+    }
+
+#endif
 }

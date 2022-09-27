@@ -66,6 +66,12 @@ namespace PowderToy
         
         [SerializeField, ReadOnly, TitleGroup("Debug Info")]
         private int _particleCount;
+
+        [SerializeField, TitleGroup("Debug Info")]
+        private bool DebugView;
+
+        [SerializeField, TitleGroup("Particle Properties")]
+        private bool allowSleeping = true;
         
         [SerializeField, Min(0), DisableInPlayMode, TitleGroup("Grid Properties")]
         private Vector2Int size;
@@ -92,8 +98,9 @@ namespace PowderToy
         // Start is called before the first frame update
         private void Start()
         {
-            _gridPositions = new GridPos[size.x * size.y];
-            _activeParticles = new Particle[size.x * size.y];
+            var count = size.x * size.y;
+            _gridPositions = new GridPos[count];
+            _activeParticles = new Particle[count];
 
             _sizeX = size.x;
             _sizeY = size.y;
@@ -134,10 +141,14 @@ namespace PowderToy
             UpdateParticles2();
             UpdateParticleRows();
 
-            _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
+            if(DebugView == false)
+                _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
+            else
+                _particleRenderer.DEBUG_DisplayOccupiedSpace(_gridPositions);
         }
 
-        
+        //============================================================================================================//
+
         public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
         {
             var newX = coordinate.x;
@@ -172,6 +183,107 @@ namespace PowderToy
                     throw new ArgumentOutOfRangeException();
             }
         }
+
+        public bool RemoveParticle(in Vector2Int coordinate, in bool updateActiveParticles = true)
+        {
+            var delX = coordinate.x;
+            var delY = coordinate.y;
+
+            if (IsSpaceOccupied(delX, delY, out Particle toDelete) == false || toDelete.Type == Particle.TYPE.NONE)
+                return false;
+            
+            _activeParticles[toDelete.Index] = Particle.Empty;
+            _gridPositions[CoordinateToIndex(delX, delY)] = GridPos.Empty;
+
+            if (updateActiveParticles)
+            {
+                _particleCount--;
+            
+                CompressActiveParticles();
+                UpdateParticleRows(true);
+            }
+            
+            return true;
+        }
+        
+        //TODO Add RemoveParticles() collection removal
+        public void RemoveParticles(in Vector2Int[] coordinates)
+        {
+            var toDeleteCount = coordinates.Length;
+            var confirmedDeletedCount = 0;
+            for (int i = 0; i < toDeleteCount; i++)
+            {
+                if (RemoveParticle(coordinates[i], false) == false)
+                    continue;
+                
+                confirmedDeletedCount++;
+            }
+            
+            _particleCount -= confirmedDeletedCount;
+            if (_particleCount < 0)
+            {
+                throw new Exception("PARTICLES FELL BELOW 0");
+            }
+            
+            CompressActiveParticles();
+            UpdateParticleRows(true);
+        }
+
+        /// <summary>
+        /// WARNING: Its very important that the particle count is adjusted before calling this function
+        /// </summary>
+        private void CompressActiveParticles()
+        {
+            //TODO Navigate list in one direction
+            //TODO Check for empty positions, if empty add to count
+            //TODO If found non-empty, after empty, shift by count
+            //TODO Change index of the particle
+            //TODO Count up until having reached the particle count
+
+            ushort particleFoundCount = 0;
+            ushort emptyPositionCount = 0;
+            var count = _activeParticles.Length;
+            for (var i = 0; i < count && particleFoundCount < _particleCount; i++)
+            {
+                var particle = _activeParticles[i];
+                var originalIndex = particle.Index;
+                
+                if (particle.Type == Particle.TYPE.NONE)
+                {
+                    emptyPositionCount++;
+                    continue;
+                }
+
+                particleFoundCount++;
+                
+                if (emptyPositionCount == 0)
+                    continue;
+
+                var newIndex = originalIndex - emptyPositionCount;
+                particle.Index = newIndex;
+                
+                var gridIndex = CoordinateToIndex(particle.XCoord, particle.YCoord);
+                _gridPositions[gridIndex] = new GridPos
+                {
+                    IsOccupied = true,
+                    particleIndex = newIndex
+                };
+
+                try
+                {
+                    _activeParticles[newIndex] = particle;
+                }
+                catch (Exception e)
+                {
+                    Debug.Log($"INdex: [{newIndex}]");
+                    throw;
+                }
+            }
+            
+            //[X, X, X, O, O, X, X]
+        }
+        
+        //==================================================================================//
         
         private void UpdateParticles2()
         {
@@ -183,8 +295,10 @@ namespace PowderToy
                 {
                     var particle = _activeParticles[(int)container[ii]];
 
-                    if(particle.Asleep)
+                    //Check for napping particles OR ones that were marked as empty
+                    if(particle.Asleep || particle.Type == Particle.TYPE.NONE)
                         continue;
+                    
 
                     bool didUpdate;
 
@@ -212,7 +326,7 @@ namespace PowderToy
                     }
                     
                     
-                    if(particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
+                    if(allowSleeping && particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
                         particle.Asleep = true;
                 }
                 
@@ -220,12 +334,31 @@ namespace PowderToy
             }
         }
 
-        private void UpdateParticleRows()
+        private void UpdateParticleRows(in bool forceClearContainers = false)
         {
+            //---------------------------------------------------//
+
+            //FIXME Instead of doing this, I should be able to apply a compression move on the array using the changed rows
+            void ForceClearRowContainers()
+            {
+                var count = _particleRowContainers.Length;
+                for (var i = 0; i < count; i++)
+                {
+                    _particleRowContainers[i].Clear();
+                }
+            }
+            
+            //---------------------------------------------------//
+            
+            if (forceClearContainers)
+                ForceClearRowContainers();
+            
             for (int i = 0; i < _particleCount; i++)
             {
                 var particle = _activeParticles[i];
                 
+                if(particle.Type == Particle.TYPE.NONE)
+                    continue;
                 if(particle.Material == Particle.MATERIAL.SOLID)
                     continue;
                 if(particle.Asleep)
@@ -234,6 +367,8 @@ namespace PowderToy
                 _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
             }
         }
+
+        //============================================================================================================//
 
         private void ClearGrid()
         {
