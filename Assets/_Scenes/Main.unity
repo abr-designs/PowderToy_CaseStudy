@@ -382,8 +382,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _particleCount: 0
+  DebugView: 0
   allowSleeping: 0
-  size: {x: 300, y: 200}
+  size: {x: 30, y: 20}
 --- !u!114 &1189435741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -792,10 +793,10 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.014038877
-    y: 0.012955465
-    width: 0.9719222
-    height: 0.9716599
+    x: 0.011703511
+    y: 0.011707317
+    width: 0.97529256
+    height: 0.9756098
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60

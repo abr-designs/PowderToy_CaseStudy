@@ -107,6 +107,9 @@ namespace PowderToy
         
         public static Action<Vector2Int> OnInit;
 
+        //TODO This might need to be a list at some point
+        public static Command QueuedCommand;
+
         public int ParticleCount => _particleCount;
         
         [SerializeField, ReadOnly, TitleGroup("Debug Info")]
@@ -183,6 +186,7 @@ namespace PowderToy
         
         private void OnTick()
         {
+            ExecuteQueuedCommand();
             UpdateParticles2();
             UpdateParticleRows();
 
@@ -190,6 +194,12 @@ namespace PowderToy
                 _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
             else
                 _particleRenderer.DEBUG_DisplayOccupiedSpace(_gridPositions);
+        }
+
+        private void ExecuteQueuedCommand()
+        {
+            //TODO Call QueuedCommand
+            throw new NotImplementedException();
         }
 
         //============================================================================================================//
