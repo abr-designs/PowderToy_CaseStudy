@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using PowderToy.Utilities;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
@@ -22,23 +23,23 @@ namespace PowderToy
             public static readonly GridPos Empty = new GridPos
             {
                 IsOccupied = false,
-                particleIndex = -1
+                ParticleIndex = -1
             };
             
             public bool IsOccupied;
-            public int particleIndex;
+            public int ParticleIndex;
         }
 
         /// <summary>
         /// Container for particles 0 -> GridSize.x on a single row. Used to effeciently navigate grid of sorted particles
         /// by Y position
         /// </summary>
-        private class ParticleColContainer
+        private class ParticleRow
         {
             public readonly uint[] ParticleIndices;
             public uint ParticleCount;
 
-            public ParticleColContainer(in uint rowSize)
+            public ParticleRow(in uint rowSize)
             {
                 ParticleIndices = new uint[rowSize];
                 ParticleCount = 0;
@@ -49,52 +50,6 @@ namespace PowderToy
             {
                 ParticleIndices[ParticleCount++] = index;
             }
-
-            public void RemoveParticle(in uint indexToRemove)
-            {
-                var shiftCount = 0;
-                for (int i = 0; i < ParticleCount; i++)
-                {
-                    var hasFoundItem = ParticleIndices[i] != indexToRemove;
-                    if (shiftCount > 0 && hasFoundItem == false)
-                    {
-                        ParticleIndices[i - shiftCount] = ParticleIndices[i];
-                    }
-                    if(hasFoundItem == false)
-                        continue;
-
-                    shiftCount++;
-                }
-
-                if (shiftCount == 0 && ParticleCount > 1)
-                    throw new Exception("Expect to kill Particle from Array");
-
-                ParticleCount--;
-            }
-
-            public void RemoveParticles(in HashSet<uint> indices)
-            {
-                var originalCount = indices.Count;
-                
-                var shiftCount = 0;
-                for (int i = 0; i < ParticleCount; i++)
-                {
-                    var index = ParticleIndices[i];
-                    var hasFoundItem = indices.Contains(index);
-                    if (shiftCount > 0 && hasFoundItem == false)
-                    {
-                        ParticleIndices[i - shiftCount] = index;
-                    }
-                    if(hasFoundItem == false)
-                        continue;
-
-                    shiftCount++;
-                    indices.Remove(index);
-                }
-
-                ParticleCount -= (uint)originalCount;
-            }
-
             public void Clear()
             {
                 //If we just set the count back to 0 we can avoid having to clear the entire array
@@ -107,7 +62,7 @@ namespace PowderToy
         
         public static Action<Vector2Int> OnInit;
 
-        //TODO This might need to be a list at some point
+        //TODO This might need to be a list at some point, or exist somewhere else
         public static Command QueuedCommand;
 
         public int ParticleCount => _particleCount;
@@ -131,8 +86,14 @@ namespace PowderToy
 
         //Collection of Grid Elements
         //------------------------------------------------//
+        
+        //Master list of Active Particles
         private Particle[] _activeParticles;
-        private ParticleColContainer[] _particleRowContainers;
+        
+        //Row organized particles to help with bottom-up update order
+        private ParticleRow[] _particleRowContainers;
+        
+        //Complete Grid Layout to track who is where
         private GridPos[] _gridPositions;
 
         //Unity Functions
@@ -153,13 +114,15 @@ namespace PowderToy
             _sizeX = size.x;
             _sizeY = size.y;
 
+            GridHelper.InitGridData(_sizeX, _sizeY);
+
             //Setup column Containers
             //------------------------------------------------//
-            _particleRowContainers = new ParticleColContainer[_sizeY];
+            _particleRowContainers = new ParticleRow[_sizeY];
             var sizeX = (uint)_sizeX;
             for (var i = 0; i < _sizeY; i++)
             {
-                _particleRowContainers[i] = new ParticleColContainer(sizeX);
+                _particleRowContainers[i] = new ParticleRow(sizeX);
             }
 
             //------------------------------------------------//
@@ -187,8 +150,8 @@ namespace PowderToy
         private void OnTick()
         {
             ExecuteQueuedCommand();
-            UpdateParticles2();
-            UpdateParticleRows();
+            UpdateParticles();
+            QueueParticleRowsForNextTick();
 
             if(DebugView == false)
                 _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
@@ -196,16 +159,42 @@ namespace PowderToy
                 _particleRenderer.DEBUG_DisplayOccupiedSpace(_gridPositions);
         }
 
+        //GridCommandBuffer
+        //============================================================================================================//
+        
         private void ExecuteQueuedCommand()
         {
-            //TODO Call QueuedCommand
-            throw new NotImplementedException();
+            switch (QueuedCommand.Type)
+            {
+                case Command.TYPE.NONE:
+                    return;
+                case Command.TYPE.SPAWN_PARTICLE:
+                    SpawnParticle(
+                        QueuedCommand.ParticleTypeToSpawn, 
+                        QueuedCommand.SpawnCoordinate);
+                    break;
+                case Command.TYPE.SPAWN_MANY_PARTICLES:
+                    TrySpawnNewParticlesInRadius(
+                        QueuedCommand.ParticleTypeToSpawn, 
+                        QueuedCommand.SpawnCoordinate,
+                        QueuedCommand.SpawnRadius);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            //Reset command buffer after executing
+            QueuedCommand = default;
         }
 
+        //Spawning Particles
         //============================================================================================================//
 
-        public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
+        private void SpawnParticle(in Particle.TYPE particleType, in Vector2Int coordinate)
         {
+            if (particleType == Particle.TYPE.NONE)
+                return;
+            
             var newX = coordinate.x;
             var newY = coordinate.y;
             
@@ -213,15 +202,15 @@ namespace PowderToy
                 return;
             
             var newIndex = _particleCount++;
-            var newColor = _particleRenderer.GetParticleColor(type);
-            var newParticle = new Particle(type, newColor, newIndex, newX, newY);
+            var newColor = _particleRenderer.GetParticleColor(particleType);
+            var newParticle = new Particle(particleType, newColor, newIndex, newX, newY);
 
             _activeParticles[newIndex] = newParticle;
 
-            _gridPositions[CoordinateToIndex(newX, newY)] = new GridPos
+            _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
             {
                 IsOccupied = true,
-                particleIndex = newParticle.Index
+                ParticleIndex = newParticle.Index
             };
 
             switch (newParticle.Material)
@@ -238,111 +227,22 @@ namespace PowderToy
                     throw new ArgumentOutOfRangeException();
             }
         }
-
-        public bool RemoveParticle(in Vector2Int coordinate, in bool updateActiveParticles = true)
-        {
-            var delX = coordinate.x;
-            var delY = coordinate.y;
-
-            if (IsSpaceOccupied(delX, delY, out Particle toDelete) == false || toDelete.Type == Particle.TYPE.NONE)
-                return false;
-            
-            _activeParticles[toDelete.Index] = Particle.Empty;
-            _gridPositions[CoordinateToIndex(delX, delY)] = GridPos.Empty;
-            //FIXME Need a nice way of call this from a group, current issue is potential allocation size
-            _particleRowContainers[delY].RemoveParticle((uint)toDelete.Index);
-
-            if (updateActiveParticles)
-            {
-                _particleCount--;
-                CompressActiveParticles();
-                //UpdateParticleRows();
-            }
-            
-            return true;
-        }
         
-        //TODO Add RemoveParticles() collection removal
-        public void RemoveParticles(in Vector2Int[] coordinates)
+        private void TrySpawnNewParticlesInRadius(in Particle.TYPE particleType, in Vector2Int originCoordinate, in uint radius)
         {
-            var toDeleteCount = coordinates.Length;
-            var confirmedDeletedCount = 0;
-            for (int i = 0; i < toDeleteCount; i++)
+            var coordinates = RadiusSelection.GetCoordinates(radius);
+
+            for (var i = 0; i < coordinates.Length; i++)
             {
-                if (RemoveParticle(coordinates[i], false) == false)
-                    continue;
+                var targetCoordinate = originCoordinate + coordinates[i];
                 
-                confirmedDeletedCount++;
+                SpawnParticle(particleType, targetCoordinate);
             }
-            
-            _particleCount -= confirmedDeletedCount;
-            if (_particleCount < 0)
-            {
-                throw new Exception("PARTICLES FELL BELOW 0");
-            }
-            
-            CompressActiveParticles();
-            //_particleRowContainers[delY].RemoveParticles((uint)toDelete.Index);
-            //UpdateParticleRows();
         }
 
-        /// <summary>
-        /// WARNING: Its very important that the particle count is adjusted before calling this function
-        /// </summary>
-        private void CompressActiveParticles()
-        {
-            //TODO Navigate list in one direction
-            //TODO Check for empty positions, if empty add to count
-            //TODO If found non-empty, after empty, shift by count
-            //TODO Change index of the particle
-            //TODO Count up until having reached the particle count
-
-            ushort particleFoundCount = 0;
-            ushort emptyPositionCount = 0;
-            var count = _activeParticles.Length;
-            for (var i = 0; i < count && particleFoundCount < _particleCount; i++)
-            {
-                var particle = _activeParticles[i];
-                var originalIndex = particle.Index;
-                
-                if (particle.Type == Particle.TYPE.NONE)
-                {
-                    emptyPositionCount++;
-                    continue;
-                }
-
-                particleFoundCount++;
-                
-                if (emptyPositionCount == 0)
-                    continue;
-
-                var newIndex = originalIndex - emptyPositionCount;
-                particle.Index = newIndex;
-                
-                var gridIndex = CoordinateToIndex(particle.XCoord, particle.YCoord);
-                _gridPositions[gridIndex] = new GridPos
-                {
-                    IsOccupied = true,
-                    particleIndex = newIndex
-                };
-
-                try
-                {
-                    _activeParticles[newIndex] = particle;
-                }
-                catch (Exception e)
-                {
-                    Debug.Log($"INdex: [{newIndex}]");
-                    throw;
-                }
-            }
-            
-            //[X, X, X, O, O, X, X]
-        }
-        
         //==================================================================================//
         
-        private void UpdateParticles2()
+        private void UpdateParticles()
         {
             for (var i = 0; i < _sizeY; i++)
             {
@@ -391,43 +291,26 @@ namespace PowderToy
             }
         }
 
-        private void UpdateParticleRows()
+        private void QueueParticleRowsForNextTick()
         {
             //---------------------------------------------------//
 
-            /*//FIXME Instead of doing this, I should be able to apply a compression move on the array using the changed rows
-            void ForceClearRowContainers()
-            {
-                var count = _particleRowContainers.Length;
-                for (var i = 0; i < count; i++)
-                {
-                    _particleRowContainers[i].Clear();
-                }
-            }
-            
-            //---------------------------------------------------//
-            
-            if (forceClearContainers)
-                ForceClearRowContainers();*/
-            
-            for (int i = 0; i < _particleCount; i++)
+            for (var i = 0; i < _particleCount; i++)
             {
                 var particle = _activeParticles[i];
                 
+                //We can't move nothing
                 if(particle.Type == Particle.TYPE.NONE)
                     continue;
+                //Solid Particles do not move
                 if(particle.Material == Particle.MATERIAL.SOLID)
                     continue;
+                //If we aren't updating the particle, don't queue it for updates
                 if(particle.Asleep)
                     continue;
                 
                 _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
             }
-        }
-
-        private void RemoveIndexFromParticleRow(in int yPos, in int particleIndex)
-        {
-            
         }
 
         //============================================================================================================//
@@ -451,7 +334,7 @@ namespace PowderToy
         
         //Grid Calculations
         //============================================================================================================//
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsSpaceOccupied(in int x, in int y, out Particle occupier)
         {
             occupier = Particle.Empty;
@@ -461,18 +344,18 @@ namespace PowderToy
             if (y >= _sizeY || y < 0)
                 return true;
             
-            var gridIndex = CoordinateToIndex(x, y);
+            var gridIndex = GridHelper.CoordinateToIndex(x, y);
 
             if (_gridPositions[gridIndex].IsOccupied == false)
                 return false;
 
-            var particleIndex = _gridPositions[gridIndex].particleIndex;
+            var particleIndex = _gridPositions[gridIndex].ParticleIndex;
             
             occupier = _activeParticles[particleIndex];
 
             return true;
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsSpaceOccupied(in int x, in int y)
         {
             if (x >= _sizeX || x < 0)
@@ -480,13 +363,9 @@ namespace PowderToy
             if (y >= _sizeY || y < 0)
                 return true;
             
-            var index = CoordinateToIndex(x, y);
+            var index = GridHelper.CoordinateToIndex(x, y);
             return _gridPositions[index].IsOccupied;
         }
-        
-        //private static int CoordinateToIndex(in Vector2Int c) => CoordinateToIndex(c.x, c.y);
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
         
         //============================================================================================================//
 
@@ -523,22 +402,22 @@ namespace PowderToy
                     //occupier.Coordinate = originalCoordinate;
                     occupier.XCoord = originalX;
                     occupier.YCoord = originalY;
-                    _gridPositions[CoordinateToIndex(originalX, originalY)] = new GridPos
+                    _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = new GridPos
                     {
                         IsOccupied = true,
-                        particleIndex = occupier.Index
+                        ParticleIndex = occupier.Index
                     };
                     _activeParticles[occupier.Index] = occupier;
                 }
                 else
-                    _gridPositions[CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
+                    _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
                 //------------------------------------------------------------------//
 
 
-                _gridPositions[CoordinateToIndex(newX, newY)] = new GridPos
+                _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
                 {
                     IsOccupied = true,
-                    particleIndex = myParticle.Index
+                    ParticleIndex = myParticle.Index
                 };
                 _activeParticles[myParticle.Index] = myParticle;
                 return true;
@@ -561,26 +440,26 @@ namespace PowderToy
                 if (occupier.Type == Particle.TYPE.WATER)
                 {
                     occupier.Coordinate = coordinate;
-                    _particlePositions[CoordinateToIndex(coordinate)] = occupier;
+                    _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = occupier;
                 }
                 else
-                    _particlePositions[CoordinateToIndex(coordinate)] = Particle.Empty;
+                    _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = Particle.Empty;
                 
-                _particlePositions[CoordinateToIndex(particle.Coordinate)] = particle;
+                _particlePositions[GridHelper.CoordinateToIndex(particle.Coordinate)] = particle;
                 return true;
             }
             if (IsSpaceOccupied(coordinate.x - 1, coordinate.y - 1, out occupier) == false)
             {
                 particle.Coordinate += new Vector2Int(-1, -1);
-                _particlePositions[CoordinateToIndex(coordinate)] = Particle.Empty;
-                _particlePositions[CoordinateToIndex(particle.Coordinate)] = particle;
+                _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = Particle.Empty;
+                _particlePositions[GridHelper.CoordinateToIndex(particle.Coordinate)] = particle;
                 return true;
             }
             if (IsSpaceOccupied(coordinate.x + 1, coordinate.y - 1, out occupier) == false)
             {
                 particle.Coordinate += new Vector2Int(1, -1);
-                _particlePositions[CoordinateToIndex(coordinate)] = Particle.Empty;
-                _particlePositions[CoordinateToIndex(particle.Coordinate)] = particle;
+                _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = Particle.Empty;
+                _particlePositions[GridHelper.CoordinateToIndex(particle.Coordinate)] = particle;
                 return true;
             }*/
         }
@@ -606,12 +485,12 @@ namespace PowderToy
                 myParticle.XCoord = newX;
                 myParticle.YCoord = newY;
 
-                _gridPositions[CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
+                _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
                 
-                _gridPositions[CoordinateToIndex(newX, newY)] = new GridPos
+                _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
                 {
                     IsOccupied = true,
-                    particleIndex = myParticle.Index
+                    ParticleIndex = myParticle.Index
                 };
                 return true;
             }
@@ -653,12 +532,12 @@ namespace PowderToy
                 myParticle.XCoord = newX;
                 myParticle.YCoord = newY;
 
-                _gridPositions[CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
+                _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
                 
-                _gridPositions[CoordinateToIndex(newX, newY)] = new GridPos
+                _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
                 {
                     IsOccupied = true,
-                    particleIndex = myParticle.Index
+                    ParticleIndex = myParticle.Index
                 };
                 return true;
             }

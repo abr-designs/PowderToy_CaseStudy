@@ -14,8 +14,9 @@ namespace PowderToy
             SPAWN_MANY_PARTICLES
         }
 
-        public Particle.TYPE TypeToSpawn;
-        public Vector2Int spawnCoordinate;
+        public TYPE Type;
+        public Particle.TYPE ParticleTypeToSpawn;
+        public Vector2Int SpawnCoordinate;
         public uint SpawnRadius;
     }
 

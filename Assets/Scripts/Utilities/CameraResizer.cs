@@ -1,8 +1,8 @@
 using UnityEngine;
 using UnityEngine.Experimental.Rendering.Universal;
+using Grid = PowderToy.Grid;
 
-
-namespace PowderToy
+namespace PowderToy.Utilities
 {
     [RequireComponent(typeof(Camera), typeof(PixelPerfectCamera))]
     public class CameraResizer : MonoBehaviour

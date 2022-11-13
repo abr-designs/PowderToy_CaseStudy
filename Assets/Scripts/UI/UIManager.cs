@@ -36,7 +36,7 @@ public class UIManager : MonoBehaviour
     private void OnEnable()
     {
         Grid.OnInit += OnInit;
-        ParticleSpawner.OnParticleTypeSelected += OnNewSelectedType;
+        ParticleGridMouseInput.OnParticleTypeSelected += OnNewSelectedType;
     }
 
     // Start is called before the first frame update
@@ -63,7 +63,7 @@ public class UIManager : MonoBehaviour
     private void OnDisable()
     {
         Grid.OnInit -= OnInit;
-        ParticleSpawner.OnParticleTypeSelected -= OnNewSelectedType;
+        ParticleGridMouseInput.OnParticleTypeSelected -= OnNewSelectedType;
     }
 
     //============================================================================================================//
