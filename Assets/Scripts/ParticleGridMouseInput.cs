@@ -77,21 +77,31 @@ namespace PowderToy
             if (_mouseDown == false)
                 return;
 
-            if (SpawnRadius == 0)
-                Grid.QueuedCommand = new Command
-                {
-                    Type = Command.TYPE.SPAWN_PARTICLE,
-                    ParticleTypeToSpawn = selectedParticleType,
-                    SpawnCoordinate = MouseCoordinate
-                };
-            else
-                Grid.QueuedCommand = new Command
-                {
-                    Type = Command.TYPE.SPAWN_MANY_PARTICLES,
-                    ParticleTypeToSpawn = selectedParticleType,
-                    SpawnCoordinate = MouseCoordinate,
-                    SpawnRadius = (uint)SpawnRadius
-                };
+            switch (selectedParticleType)
+            {
+                case Particle.TYPE.NONE:
+                    Grid.QueuedCommand = new Command
+                    {
+                        Type = Command.TYPE.KILL_PARTICLE,
+                        InteractionCoordinate = MouseCoordinate,
+                        InteractionRadius = (uint)SpawnRadius
+                    };
+                    break;
+                case Particle.TYPE.SAND:
+                case Particle.TYPE.WATER:
+                case Particle.TYPE.WOOD:
+                case Particle.TYPE.STEAM:
+                    Grid.QueuedCommand = new Command
+                    {
+                        Type = Command.TYPE.SPAWN_PARTICLE,
+                        ParticleTypeToSpawn = selectedParticleType,
+                        InteractionCoordinate = MouseCoordinate,
+                        InteractionRadius = (uint)SpawnRadius
+                    };
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
         }
 
         private void ToggleSpawnType()

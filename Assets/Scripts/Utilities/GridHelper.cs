@@ -15,5 +15,19 @@ namespace PowderToy.Utilities
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int CoordinateToIndex(in Particle particle) => (_sizeX * particle.YCoord) + particle.XCoord;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsLegalCoordinate(in int x, in int y)
+        {
+            if (x >= _sizeX || x < 0)
+                return false;
+            if (y >= _sizeY || y < 0)
+                return false;
+
+            return true;
+        }
     }
 }

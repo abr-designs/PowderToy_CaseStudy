@@ -84,6 +84,8 @@ namespace PowderToy
 
         private ParticleRenderer _particleRenderer;
 
+        private bool gridRequiresCleaning;
+
         //Collection of Grid Elements
         //------------------------------------------------//
         
@@ -151,6 +153,10 @@ namespace PowderToy
         {
             ExecuteQueuedCommand();
             UpdateParticles();
+            
+            if(gridRequiresCleaning)
+                CleanActiveParticles();
+            
             QueueParticleRowsForNextTick();
 
             if(DebugView == false)
@@ -166,19 +172,31 @@ namespace PowderToy
         {
             switch (QueuedCommand.Type)
             {
+                //------------------------------------------------//
                 case Command.TYPE.NONE:
                     return;
-                case Command.TYPE.SPAWN_PARTICLE:
+                //------------------------------------------------//
+                case Command.TYPE.SPAWN_PARTICLE when QueuedCommand.InteractionRadius == 0:
                     SpawnParticle(
                         QueuedCommand.ParticleTypeToSpawn, 
-                        QueuedCommand.SpawnCoordinate);
+                        QueuedCommand.InteractionCoordinate);
                     break;
-                case Command.TYPE.SPAWN_MANY_PARTICLES:
+                case Command.TYPE.SPAWN_PARTICLE:
                     TrySpawnNewParticlesInRadius(
                         QueuedCommand.ParticleTypeToSpawn, 
-                        QueuedCommand.SpawnCoordinate,
-                        QueuedCommand.SpawnRadius);
+                        QueuedCommand.InteractionCoordinate,
+                        QueuedCommand.InteractionRadius);
                     break;
+                //------------------------------------------------//
+                case Command.TYPE.KILL_PARTICLE when QueuedCommand.InteractionRadius > 0:
+                    TryMarkParticleForDeathInRadius(
+                        QueuedCommand.InteractionCoordinate, 
+                        QueuedCommand.InteractionRadius);
+                    break;
+                case Command.TYPE.KILL_PARTICLE:
+                    MarkParticleForDeath(QueuedCommand.InteractionCoordinate);
+                    break;
+                //------------------------------------------------//
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -240,6 +258,68 @@ namespace PowderToy
             }
         }
 
+        //Killing Particles
+        //============================================================================================================//
+
+        private void MarkParticleForDeath(in Vector2Int coordinate)
+        {
+            var x = coordinate.x;
+            var y = coordinate.y;
+            
+            if (GridHelper.IsLegalCoordinate(x, y) == false)
+                return;
+            
+            if(IsSpaceOccupied(x, y) == false)
+                return;
+
+            var gridIndex = GridHelper.CoordinateToIndex(x, y);
+            var gridPos = _gridPositions[gridIndex];
+
+            var particle = _activeParticles[gridPos.ParticleIndex];
+            
+
+            //We only want to queue deletion for things that move, solid things are safe to be deleted now.
+            //This is because solid particles do not get updated the same way
+            //FIXME once fire is added the above statement may need to change
+            switch (particle.Material)
+            {
+                case Particle.MATERIAL.SOLID:
+                    KillParticle(particle);
+                    break;
+                case Particle.MATERIAL.POWDER:
+                case Particle.MATERIAL.LIQUID:
+                case Particle.MATERIAL.GAS:
+                    particle.WillBeKilled = true;
+                    _activeParticles[gridPos.ParticleIndex] = particle;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            gridRequiresCleaning = true;
+        }
+        
+        private void TryMarkParticleForDeathInRadius(in Vector2Int originCoordinate, in uint radius)
+        {
+            var coordinates = RadiusSelection.GetCoordinates(radius);
+
+            for (var i = 0; i < coordinates.Length; i++)
+            {
+                MarkParticleForDeath(originCoordinate + coordinates[i]);
+            }
+        }
+
+        private void KillParticle(in Particle particle)
+        {
+            var gridIndex = GridHelper.CoordinateToIndex(particle);
+            var gridPos = _gridPositions[gridIndex];
+            gridPos.IsOccupied = false;
+
+            _gridPositions[gridIndex] = gridPos;
+            _activeParticles[particle.Index] = Particle.Empty;
+            _particleCount--;
+        }
+
         //==================================================================================//
         
         private void UpdateParticles()
@@ -255,6 +335,12 @@ namespace PowderToy
                     //Check for napping particles OR ones that were marked as empty
                     if(particle.Asleep || particle.Type == Particle.TYPE.NONE)
                         continue;
+
+                    if (particle.WillBeKilled)
+                    {
+                        KillParticle(particle);
+                        continue;
+                    }
                     
 
                     bool didUpdate;
@@ -291,6 +377,46 @@ namespace PowderToy
             }
         }
 
+        private void CleanActiveParticles()
+        {
+            var expectedParticles = _particleCount;
+            var maxCount = _activeParticles.Length;
+            
+            var foundParticles = 0;
+            var indexOffset = 0;
+            for (var i = 0; i < maxCount; i++)
+            {
+                if (foundParticles == expectedParticles)
+                    break;
+                
+                var particle = _activeParticles[i];
+
+                if (particle.Type == Particle.TYPE.NONE)
+                {
+                    indexOffset++;
+                    continue;
+                }
+
+                foundParticles++;
+
+                if (indexOffset == 0)
+                    continue;
+
+                var newIndex = i - indexOffset;
+
+                var gridPosIndex = GridHelper.CoordinateToIndex(particle);
+                var gridPos = _gridPositions[gridPosIndex];
+                gridPos.ParticleIndex = newIndex;
+                _gridPositions[gridPosIndex] = gridPos;
+
+                particle.Index = newIndex;
+                _activeParticles[newIndex] = particle;
+                _activeParticles[i] = Particle.Empty;
+            }
+
+            gridRequiresCleaning = false;
+        }
+
         private void QueueParticleRowsForNextTick()
         {
             //---------------------------------------------------//
@@ -308,7 +434,7 @@ namespace PowderToy
                 //If we aren't updating the particle, don't queue it for updates
                 if(particle.Asleep)
                     continue;
-                
+
                 _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
             }
         }
@@ -339,9 +465,7 @@ namespace PowderToy
         {
             occupier = Particle.Empty;
             
-            if (x >= _sizeX || x < 0)
-                return true;
-            if (y >= _sizeY || y < 0)
+            if (GridHelper.IsLegalCoordinate(x, y) == false)
                 return true;
             
             var gridIndex = GridHelper.CoordinateToIndex(x, y);
@@ -350,22 +474,35 @@ namespace PowderToy
                 return false;
 
             var particleIndex = _gridPositions[gridIndex].ParticleIndex;
+            var particle = _activeParticles[particleIndex];
+
+            if (particle.WillBeKilled)
+                return false;
             
-            occupier = _activeParticles[particleIndex];
+            occupier = particle;
 
             return true;
         }
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private bool IsSpaceOccupied(in int x, in int y)
         {
-            if (x >= _sizeX || x < 0)
+            if (GridHelper.IsLegalCoordinate(x, y) == false)
                 return true;
-            if (y >= _sizeY || y < 0)
-                return true;
+
+            var gridIndex = GridHelper.CoordinateToIndex(x, y);
+
+            if (_gridPositions[gridIndex].IsOccupied == false)
+                return false;
+
+            var particleIndex = _gridPositions[gridIndex].ParticleIndex;
+            var particle = _activeParticles[particleIndex];
+
+            if (particle.WillBeKilled)
+                return false;
             
-            var index = GridHelper.CoordinateToIndex(x, y);
-            return _gridPositions[index].IsOccupied;
+            return true;
         }
+        
         
         //============================================================================================================//
 

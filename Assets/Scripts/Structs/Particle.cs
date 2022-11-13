@@ -43,6 +43,7 @@ namespace PowderToy
         public int Index;
         public int SleepCounter;
         public bool Asleep;
+        public bool WillBeKilled;
         public int XCoord;
         public int YCoord;
 
@@ -50,6 +51,7 @@ namespace PowderToy
         {
             SleepCounter = 0;
             Asleep = false;
+            WillBeKilled = false;
 
             Type = type;
             Material = ParticleMaterials[type];
@@ -60,22 +62,4 @@ namespace PowderToy
             YCoord = y;
         }
     }
-    
-    /*public class CompareParticleAscending : IComparer<Particle>
-    {
-        public int Compare(Particle particleA, Particle particleB)
-        {
-            return particleA.Coordinate.y - particleB.Coordinate.y;
-
-            /*switch (dif)
-            {
-                case > 0:
-                    return 1;
-                case < 0:
-                    return -1;
-                default:
-                    return 0;
-            }#1#
-        }
-    }*/
 }
