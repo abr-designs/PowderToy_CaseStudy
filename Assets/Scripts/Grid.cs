@@ -52,24 +52,36 @@ namespace PowderToy
 
             public void RemoveParticle(in uint indexToRemove)
             {
+                if (ParticleCount == 0)
+                    return;
+                
                 var shiftCount = 0;
-                for (int i = 0; i < ParticleCount; i++)
+                var i = 0;
+                try
                 {
-                    var hasFoundItem = ParticleIndices[i] != indexToRemove;
-                    if (shiftCount > 0 && hasFoundItem == false)
+                    for (i = 0; i < ParticleCount; i++)
                     {
-                        ParticleIndices[i - shiftCount] = ParticleIndices[i];
+                        var hasFoundItem = ParticleIndices[i] != indexToRemove;
+                        if (shiftCount > 0 && hasFoundItem == false)
+                        {
+                            ParticleIndices[i - shiftCount] = ParticleIndices[i];
+                        }
+                        if(hasFoundItem == false)
+                            continue;
+
+                        shiftCount++;
                     }
-                    if(hasFoundItem == false)
-                        continue;
 
-                    shiftCount++;
+                    if (shiftCount == 0 && ParticleCount > 1)
+                        throw new Exception("Expect to kill Particle from Array");
+
+                    ParticleCount--;
                 }
-
-                if (shiftCount == 0 && ParticleCount > 1)
-                    throw new Exception("Expect to kill Particle from Array");
-
-                ParticleCount--;
+                catch (IndexOutOfRangeException e)
+                {
+                    Debug.LogError($"(i){i} - (shift){shiftCount} == {i - shiftCount}\n[{string.Join(", ", ParticleIndices)}]");
+                    throw e;
+                }
             }
 
             public void RemoveParticles(in HashSet<uint> indices)
@@ -196,15 +208,105 @@ namespace PowderToy
                 _particleRenderer.DEBUG_DisplayOccupiedSpace(_gridPositions);
         }
 
+        //============================================================================================================//
+
+        public static void QueueNewCommand(in Command command) => QueuedCommand = command;
+        
         private void ExecuteQueuedCommand()
         {
-            //TODO Call QueuedCommand
-            throw new NotImplementedException();
+
+            switch (QueuedCommand.Type)
+            {
+                //------------------------------------------------//
+                case Command.TYPE.NONE:
+                    return;
+                //Remove Particles
+                //------------------------------------------------//
+                case Command.TYPE.SPAWN_PARTICLE when QueuedCommand.TypeToSpawn == Particle.TYPE.NONE && QueuedCommand.SpawnRadius == 0:
+                    RemoveParticle(QueuedCommand.mouseCoordinate);
+                    break;
+                case Command.TYPE.SPAWN_PARTICLE when QueuedCommand.TypeToSpawn == Particle.TYPE.NONE && QueuedCommand.SpawnRadius > 0:
+                    var toRemove = TryRemoveParticlesInRadius(QueuedCommand.mouseCoordinate, (int)QueuedCommand.SpawnRadius);
+                    RemoveParticles(toRemove);
+                    break;
+                //Spawn Particles
+                //------------------------------------------------//
+                case Command.TYPE.SPAWN_PARTICLE when QueuedCommand.SpawnRadius == 0:
+                    SpawnParticle(QueuedCommand.TypeToSpawn, QueuedCommand.mouseCoordinate);
+                    break;
+                case Command.TYPE.SPAWN_PARTICLE when QueuedCommand.SpawnRadius > 0:
+                    TrySpawnNewParticlesInRadius(QueuedCommand.mouseCoordinate, 
+                        QueuedCommand.TypeToSpawn,
+                        (int)QueuedCommand.SpawnRadius);
+                    break;
+                //------------------------------------------------//
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            
+            QueuedCommand = Command.Empty;
+        }
+        
+        private void TrySpawnNewParticlesInRadius(in Vector2Int coord, in Particle.TYPE particleType, in int radius)
+        {
+            int x, y, px, nx, py, ny, d;
+            
+            var rSqr = radius * radius;
+
+            for (x = 0; x <= radius; x++)
+            {
+                d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
+                for (y = 0; y <= d; y++)
+                {
+                    px = coord.x + x;
+                    nx = coord.x - x;
+                    
+                    py = coord.y + y;
+                    ny = coord.y - y;
+
+                    SpawnParticle(particleType, new Vector2Int(px, py));
+                    SpawnParticle(particleType, new Vector2Int(nx, py));
+                    SpawnParticle(particleType, new Vector2Int(px, ny));
+                    SpawnParticle(particleType, new Vector2Int(nx, ny));
+                }
+            }
+
+            //_mouseDown = false;
+        }
+        
+        //FIXME I should be saving this radius size array elsewhere
+        private Vector2Int[] TryRemoveParticlesInRadius(in Vector2Int coord, in int radius)
+        {
+            int x, y, px, nx, py, ny, d;
+            
+            var rSqr = radius * radius;
+            var coordinates = new List<Vector2Int>();
+
+            for (x = 0; x <= radius; x++)
+            {
+                d = (int)Mathf.Ceil(Mathf.Sqrt(rSqr - x * x));
+                for (y = 0; y <= d; y++)
+                {
+                    px = coord.x + x;
+                    nx = coord.x - x;
+                    
+                    py = coord.y + y;
+                    ny = coord.y - y;
+
+                    coordinates.Add(new Vector2Int(px, py));
+                    coordinates.Add(new Vector2Int(nx, py));
+                    coordinates.Add(new Vector2Int(px, ny));
+                    coordinates.Add(new Vector2Int(nx, ny));
+                }
+            }
+
+            //_mouseDown = false;
+            return coordinates.Distinct().ToArray();
         }
 
         //============================================================================================================//
 
-        public void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
+        private void SpawnParticle(in Particle.TYPE type, in Vector2Int coordinate)
         {
             var newX = coordinate.x;
             var newY = coordinate.y;
@@ -239,7 +341,7 @@ namespace PowderToy
             }
         }
 
-        public bool RemoveParticle(in Vector2Int coordinate, in bool updateActiveParticles = true)
+        private bool RemoveParticle(in Vector2Int coordinate, in bool updateActiveParticles = true)
         {
             var delX = coordinate.x;
             var delY = coordinate.y;
@@ -263,7 +365,7 @@ namespace PowderToy
         }
         
         //TODO Add RemoveParticles() collection removal
-        public void RemoveParticles(in Vector2Int[] coordinates)
+        private void RemoveParticles(in Vector2Int[] coordinates)
         {
             var toDeleteCount = coordinates.Length;
             var confirmedDeletedCount = 0;
@@ -291,6 +393,35 @@ namespace PowderToy
         /// </summary>
         private void CompressActiveParticles()
         {
+            //FIXME This is the brute force version of this, nonononononono
+            //------------------------------------------------//
+
+            var liveParticles = _activeParticles
+                .Where(x => x.Type != Particle.TYPE.NONE)
+                .ToArray();
+
+            for (int i = 0; i < _activeParticles.Length; i++)
+            {
+                _activeParticles[i] = Particle.Empty;
+            }
+            for (var i = 0; i < _gridPositions.Length; i++)
+            {
+                _gridPositions[i] = GridPos.Empty;
+            }
+
+            for (int i = 0; i < liveParticles.Length; i++)
+            {
+                _activeParticles[i] = liveParticles[i];
+                _gridPositions[i] = new GridPos
+                {
+                    particleIndex = i,
+                    IsOccupied = true
+                };
+            }
+
+            return;
+            //------------------------------------------------//
+            
             //TODO Navigate list in one direction
             //TODO Check for empty positions, if empty add to count
             //TODO If found non-empty, after empty, shift by count

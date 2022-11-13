@@ -23,7 +23,7 @@ namespace PowderToy
 
         private bool _mouseDown;
 
-        private Grid _particleGrid;
+        //private Grid _particleGrid;
         //Unity Functions
         //============================================================================================================//
 
@@ -35,7 +35,7 @@ namespace PowderToy
 
         private void Start()
         {
-            _particleGrid = FindObjectOfType<Grid>();
+            //_particleGrid = FindObjectOfType<Grid>();
             SpawnRadius = 0;
             
             //Make sure that we announce the selected type on start
@@ -88,7 +88,15 @@ namespace PowderToy
             if (_mouseDown == false)
                 return;
             
-            //If the eraser is selected
+            Grid.QueueNewCommand(new Command
+            {
+                Type = Command.TYPE.SPAWN_PARTICLE,
+                TypeToSpawn = selectedType,
+                SpawnRadius = (uint)SpawnRadius,
+                mouseCoordinate = MouseCoordinate
+            });
+            
+            /*//If the eraser is selected
             if (selectedType == Particle.TYPE.NONE)
             {
                 if (SpawnRadius == 0)
@@ -106,12 +114,12 @@ namespace PowderToy
                     _particleGrid.SpawnParticle(selectedType, MouseCoordinate);
                 else
                     TrySpawnNewParticlesInRadius(SpawnRadius);
-            }
+            }*/
 
             
         }
 
-        private void TrySpawnNewParticlesInRadius(in int radius)
+        /*private void TrySpawnNewParticlesInRadius(in int radius)
         {
             int x, y, px, nx, py, ny, d;
             
@@ -167,7 +175,7 @@ namespace PowderToy
 
             //_mouseDown = false;
             return coordinates.Distinct().ToArray();
-        }
+        }*/
 
         private void ToggleSpawnType()
         {

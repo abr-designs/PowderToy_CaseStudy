@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using PowderToy;
 using UnityEngine;
 
 namespace PowderToy
@@ -11,11 +8,13 @@ namespace PowderToy
         {
             NONE,
             SPAWN_PARTICLE,
-            SPAWN_MANY_PARTICLES
         }
 
+        public static readonly Command Empty = new Command(); 
+
+        public TYPE Type;
         public Particle.TYPE TypeToSpawn;
-        public Vector2Int spawnCoordinate;
+        public Vector2Int mouseCoordinate;
         public uint SpawnRadius;
     }
 
