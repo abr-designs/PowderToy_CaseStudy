@@ -11,24 +11,6 @@ namespace PowderToy
     {
         private static readonly int BaseMapPropertyID = Shader.PropertyToID("_BaseMap");
 
-        //Structs
-        //============================================================================================================//
-        
-        /// <summary>
-        /// Stores gradient for Particle type color
-        /// </summary>
-        [Serializable]
-        private struct ParticleColor
-        {
-            public Particle.TYPE Type;
-            public Gradient Gradient;
-
-            public Color32 GetColor()
-            {
-                return Gradient.Evaluate(Random.value);
-            }
-        }
-        
         //Properties
         //============================================================================================================//
         private static int _sizeX;
@@ -37,10 +19,7 @@ namespace PowderToy
         [SerializeField, TitleGroup("Render Info")]
         private Renderer targetRenderer;
         private Material _sharedMaterial;
-
-        [SerializeField, TitleGroup("Particle Colors")]
-        private ParticleColor[] particleColors;
-        private Dictionary<Particle.TYPE, ParticleColor> _particleColors;
+        
 
         //Texture color array
         //------------------------------------------------//    
@@ -60,16 +39,6 @@ namespace PowderToy
 
         private void Init(Vector2Int size)
         {
-            //Setup Color references
-            //------------------------------------------------------------------//
-
-            _particleColors = new Dictionary<Particle.TYPE, ParticleColor>();
-            for (int i = 0; i < particleColors.Length; i++)
-            {
-                var data = particleColors[i];
-                _particleColors.Add(data.Type, data);
-            }
-            
             //Setup Texture Size
             //------------------------------------------------------------------//
 
@@ -132,13 +101,6 @@ namespace PowderToy
             SetPixels(_activeTexture);
         }
 
-        //============================================================================================================//
-
-        public Color32 GetParticleColor(in Particle.TYPE type)
-        {
-            return _particleColors[type].GetColor();
-        }
-        
         //============================================================================================================//
 
         private void UpdateMousePos(in int radius, in Color32 color)

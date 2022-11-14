@@ -220,8 +220,9 @@ namespace PowderToy
                 return;
             
             var newIndex = _particleCount++;
-            var newColor = _particleRenderer.GetParticleColor(particleType);
-            var newParticle = new Particle(particleType, newColor, newIndex, newX, newY);
+            //var newColor = _particleRenderer.GetParticleColor(particleType);
+            //var newParticle = new Particle(particleType, newColor, newIndex, newX, newY);
+            var newParticle = ParticleFactory.CreateParticle(particleType, newIndex, newX, newY);
 
             _activeParticles[newIndex] = newParticle;
 
@@ -287,7 +288,7 @@ namespace PowderToy
                 case Particle.MATERIAL.POWDER:
                 case Particle.MATERIAL.LIQUID:
                 case Particle.MATERIAL.GAS:
-                    particle.WillBeKilled = true;
+                    particle.KillNextTick = true;
                     _activeParticles[gridPos.ParticleIndex] = particle;
                     break;
                 default:
@@ -332,7 +333,7 @@ namespace PowderToy
                     if(particle.Asleep || particle.Type == Particle.TYPE.NONE)
                         continue;
 
-                    if (particle.WillBeKilled)
+                    if (particle.KillNextTick)
                     {
                         KillParticle(particle);
                         continue;
@@ -472,7 +473,7 @@ namespace PowderToy
             var particleIndex = _gridPositions[gridIndex].ParticleIndex;
             var particle = _activeParticles[particleIndex];
 
-            if (particle.WillBeKilled)
+            if (particle.KillNextTick)
                 return false;
             
             occupier = particle;
@@ -493,7 +494,7 @@ namespace PowderToy
             var particleIndex = _gridPositions[gridIndex].ParticleIndex;
             var particle = _activeParticles[particleIndex];
 
-            if (particle.WillBeKilled)
+            if (particle.KillNextTick)
                 return false;
             
             return true;

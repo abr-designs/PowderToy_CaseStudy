@@ -91,6 +91,7 @@ namespace PowderToy
                 case Particle.TYPE.WATER:
                 case Particle.TYPE.WOOD:
                 case Particle.TYPE.STEAM:
+                case Particle.TYPE.FIRE:
                     Grid.QueuedCommand = new Command
                     {
                         Type = Command.TYPE.SPAWN_PARTICLE,
@@ -108,7 +109,7 @@ namespace PowderToy
         {
             var newType = (int)selectedParticleType;
             newType++;
-            if (newType > 4)
+            if (newType > 5)
                 newType = 0;
 
 
