@@ -276,8 +276,6 @@ namespace PowderToy
             var gridPos = _gridPositions[gridIndex];
 
             var particle = _activeParticles[gridPos.ParticleIndex];
-            
-
             //We only want to queue deletion for things that move, solid things are safe to be deleted now.
             //This is because solid particles do not get updated the same way
             //FIXME once fire is added the above statement may need to change
@@ -296,6 +294,9 @@ namespace PowderToy
                     throw new ArgumentOutOfRangeException();
             }
 
+            gridPos.IsOccupied = false;
+            _gridPositions[gridIndex] = gridPos;
+            
             gridRequiresCleaning = true;
         }
         
@@ -311,11 +312,6 @@ namespace PowderToy
 
         private void KillParticle(in Particle particle)
         {
-            var gridIndex = GridHelper.CoordinateToIndex(particle);
-            var gridPos = _gridPositions[gridIndex];
-            gridPos.IsOccupied = false;
-
-            _gridPositions[gridIndex] = gridPos;
             _activeParticles[particle.Index] = Particle.Empty;
             _particleCount--;
         }
