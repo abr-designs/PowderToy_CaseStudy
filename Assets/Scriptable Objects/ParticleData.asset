@@ -195,6 +195,6 @@ MonoBehaviour:
       m_NumAlphaKeys: 2
     hasLifetime: 1
     lifetimeMin: 10
-    lifetimeMax: 30
+    lifetimeMax: 60
     canBurn: 0
     burnChance: 0

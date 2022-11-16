@@ -14,6 +14,9 @@ namespace PowderToy
         public static int SpawnRadius { get; private set; }
 
         [SerializeField]
+        private bool usePressAndHold = true;
+
+        [SerializeField]
         private Particle.TYPE selectedParticleType;
         
         private Vector2Int _gridSize;
@@ -103,6 +106,9 @@ namespace PowderToy
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            if(usePressAndHold == false)
+                _mouseDown = false;
         }
 
         private void ToggleSpawnType()
