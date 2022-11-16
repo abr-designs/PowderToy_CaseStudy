@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using PowderToy.Utilities;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace PowderToy
 {
@@ -407,6 +408,9 @@ namespace PowderToy
                         case Particle.MATERIAL.LIQUID:
                             didUpdate = UpdateLiquidParticle(ref particle);
                             break;
+                        case Particle.MATERIAL.GAS when particle.Type == Particle.TYPE.FIRE:
+                            didUpdate = UpdateFireParticle(ref particle);
+                            break;
                         case Particle.MATERIAL.GAS:
                             didUpdate = UpdateGasParticle(ref particle);
                             break;
@@ -740,6 +744,107 @@ namespace PowderToy
             if (TrySetNewPosition(1, 0, ref particle))
                 return true;
             
+            return false;
+        }
+
+        //============================================================================================================//
+
+        private readonly int[] _fireSurroundings = new int[8];
+        private bool UpdateFireParticle(ref Particle particle)
+        {
+            if (particle.Type != Particle.TYPE.FIRE)
+                throw new Exception();
+
+            //var coordinate = particle.Coordinate;
+            var originalX = particle.XCoord;
+            var originalY = particle.YCoord;
+
+            //[0 1 2]
+            //[3 x 4]
+            //[5 6 7]
+
+            var currentIndex = GridHelper.CoordinateToIndex(originalX, originalY);
+
+            _fireSurroundings[0] = GridHelper.CoordinateToIndex(originalX - 1, originalY + 1);
+            _fireSurroundings[1] = GridHelper.CoordinateToIndex(originalX, originalY + 1);
+            _fireSurroundings[2] = GridHelper.CoordinateToIndex(originalX + 1, originalY + 1);
+            _fireSurroundings[3] = GridHelper.CoordinateToIndex(originalX - 1, originalY);
+            _fireSurroundings[4] = GridHelper.CoordinateToIndex(originalX + 1, originalY);
+            _fireSurroundings[5] = GridHelper.CoordinateToIndex(originalX - 1, originalY - 1);
+            _fireSurroundings[6] = GridHelper.CoordinateToIndex(originalX, originalY - 1);
+            _fireSurroundings[7] = GridHelper.CoordinateToIndex(originalX + 1, originalY - 1);
+            
+            //Check for things to burn
+            //------------------------------------------------------------------//
+
+            for (var i = 0; i < 8; i++)
+            {
+                var index = _fireSurroundings[i];
+                if (GridHelper.IsLegalIndex(index) == false)
+                    continue;
+                
+                var gridPos = _gridPositions[index];
+                if(gridPos.IsOccupied == false)
+                    continue;
+                
+                var posParticle = _activeParticles[gridPos.ParticleIndex];
+
+                if (posParticle.CanBurn == false)
+                    continue;
+
+                if (Random.Range(0, 100) > posParticle.ChanceToBurn)
+                    continue;
+
+                posParticle = ParticleFactory.CreateParticle(
+                    Particle.TYPE.FIRE, 
+                    posParticle.Index, 
+                    posParticle.XCoord,
+                    posParticle.YCoord);
+
+                _activeParticles[gridPos.ParticleIndex] = posParticle;
+            }
+            
+            //Update Position
+            //------------------------------------------------------------------//
+
+            bool TrySetNewPosition(in int newX, in int newY, in int newGridIndex, in int currentGridIndex,
+                ref Particle myParticle)
+            {
+                //IF the space is occupied, leave early
+                if (IsSpaceOccupied(newX, newY))
+                    return false;
+
+                //myParticle.Coordinate += offset;
+                myParticle.XCoord = newX;
+                myParticle.YCoord = newY;
+
+                _gridPositions[currentGridIndex] = GridPos.Empty;
+
+                _gridPositions[newGridIndex] = new GridPos
+                {
+                    IsOccupied = true,
+                    ParticleIndex = myParticle.Index
+                };
+                return true;
+            }
+
+            //------------------------------------------------------------------//
+
+            //[0 1 2]
+            //[3 x 4]
+            //[5 6 7]
+
+            if (TrySetNewPosition(originalX, originalY + 1, _fireSurroundings[1], currentIndex, ref particle))
+                return true;
+            if (TrySetNewPosition(originalX - 1, originalY + 1, _fireSurroundings[0], currentIndex, ref particle))
+                return true;
+            if (TrySetNewPosition(originalX + 1, originalY + 1, _fireSurroundings[2], currentIndex, ref particle))
+                return true;
+            if (TrySetNewPosition(originalX - 1, originalY, _fireSurroundings[3], currentIndex, ref particle))
+                return true;
+            if (TrySetNewPosition(originalX + 1, originalY, _fireSurroundings[4], currentIndex, ref particle))
+                return true;
+
             return false;
         }
 

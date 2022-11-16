@@ -6,11 +6,13 @@ namespace PowderToy.Utilities
     {
         private static int _sizeX;
         private static int _sizeY;
+        private static int _maxSize;
         
         public static void InitGridData(in int width, in int height)
         {
             _sizeX = width;
             _sizeY = height;
+            _maxSize = _sizeX * _sizeY;
         }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -29,5 +31,8 @@ namespace PowderToy.Utilities
 
             return true;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsLegalIndex(in int index) => index >= 0 && index < _maxSize;
     }
 }
