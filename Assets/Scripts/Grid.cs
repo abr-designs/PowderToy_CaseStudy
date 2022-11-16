@@ -57,6 +57,23 @@ namespace PowderToy
             }
         }
 
+        /// <summary>
+        /// Used exclusively by IsSpaceOccupiedDetailed() to return information foregoing the use of an anonymous type/Tuple.
+        /// Do not use for anything other than fast obtaining of information on a grid location.
+        /// </summary>
+        private readonly struct GridLocationDetails
+        {
+            public readonly bool IsLegal;
+            public readonly bool IsOccupied;
+            public readonly uint OccupierIndex;
+
+            public GridLocationDetails(in bool isLegal, in bool isOccupied, in uint occupierIndex)
+            {
+                IsLegal = isLegal;
+                IsOccupied = isOccupied;
+                OccupierIndex = occupierIndex;
+            }
+        }
         //Properties
         //============================================================================================================//        
         
@@ -503,32 +520,36 @@ namespace PowderToy
         
         //Grid Calculations
         //============================================================================================================//
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsSpaceOccupied(in int x, in int y, out int occupierIndex)
+
+        /// <summary>
+        /// Gets information about the grid position such as if the location exists on the grid, whether it is occupied,
+        /// and if occupied by whom (by Active Particle index).
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        private GridLocationDetails IsSpaceOccupiedDetailed(in int x, in int y)
         {
-            occupierIndex = -1;
-            
             if (GridHelper.IsLegalCoordinate(x, y) == false)
-                return true;
+                return new GridLocationDetails(false, default, default);
             
             var gridIndex = GridHelper.CoordinateToIndex(x, y);
 
             if (_gridPositions[gridIndex].IsOccupied == false)
-                return false;
+                return new GridLocationDetails(true, false, default);
 
             var particleIndex = _gridPositions[gridIndex].ParticleIndex;
             //var particle = _activeParticles[particleIndex];
 
             if (_activeParticles[particleIndex].KillNextTick)
-                return false;
+                return new GridLocationDetails(true, false, default);
             
-            occupierIndex = particleIndex;
-
-            return true;
+            return new GridLocationDetails(true, true, (uint)particleIndex);
         }
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+
         private bool IsSpaceOccupied(in int x, in int y)
         {
+            //TODO Might need to apply the same fix as the above function for grid space legality
             if (GridHelper.IsLegalCoordinate(x, y) == false)
                 return true;
 
@@ -565,25 +586,21 @@ namespace PowderToy
                 //var testCoordinate = myParticle.Coordinate + offset;
                 var newX = originalX + xOffset;
                 var newY = originalY + yOffset;
-                Particle occupier = default;
 
                 //IF the space is occupied, leave early
-                var spaceOccupied = IsSpaceOccupied(newX, newY, out var occupierIndex);
+                //TODO Need to test this to see if the anonymous return or a struct would be better
+                var gridLocationDetails = IsSpaceOccupiedDetailed(newX, newY);
+                var spaceOccupied = gridLocationDetails.IsOccupied;
+                var occupierIndex = gridLocationDetails.OccupierIndex;
 
-                /*if (spaceOccupied && occupierIndex.Type != Particle.TYPE.WATER)
-                    return false;*/
+                if (gridLocationDetails.IsLegal == false)
+                    return false;
+                
+                Particle occupier = default;
 
                 if (spaceOccupied)
                 {
-                    try
-                    {
-                        occupier = _activeParticles[occupierIndex];
-                    }
-                    catch (Exception e)
-                    {
-                        Console.WriteLine(e);
-                        throw;
-                    }
+                    occupier = _activeParticles[occupierIndex];
                     
                     if (occupier.Type != Particle.TYPE.WATER)
                         return false;
@@ -602,7 +619,7 @@ namespace PowderToy
                     _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = new GridPos
                     {
                         IsOccupied = true,
-                        ParticleIndex = occupierIndex
+                        ParticleIndex = (int)occupierIndex
                     };
                     _activeParticles[occupierIndex] = occupier;
                 }
