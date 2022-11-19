@@ -306,8 +306,6 @@ namespace PowderToy
             switch (particle.Material)
             {
                 case Particle.MATERIAL.SOLID:
-                    KillParticle(particle);
-                    break;
                 case Particle.MATERIAL.POWDER:
                 case Particle.MATERIAL.LIQUID:
                 case Particle.MATERIAL.GAS:
@@ -341,8 +339,6 @@ namespace PowderToy
             switch (particle.Material)
             {
                 case Particle.MATERIAL.SOLID:
-                    KillParticle(particle);
-                    break;
                 case Particle.MATERIAL.POWDER:
                 case Particle.MATERIAL.LIQUID:
                 case Particle.MATERIAL.GAS:
@@ -408,6 +404,9 @@ namespace PowderToy
 
                     switch (particle.Material)
                     {
+                        case Particle.MATERIAL.SOLID when particle.Type == Particle.TYPE.FIRE:
+                            didUpdate = true;
+                            break;
                         case Particle.MATERIAL.SOLID:
                             continue;
                         case Particle.MATERIAL.POWDER:
@@ -495,8 +494,8 @@ namespace PowderToy
                 //We can't move nothing
                 if(particle.Type == Particle.TYPE.NONE)
                     continue;
-                //Solid Particles do not move
-                if(particle.Material == Particle.MATERIAL.SOLID)
+                //Solid Particles do not move thus do not need to be updated. Unless they're on fire.
+                if(particle.Material == Particle.MATERIAL.SOLID && particle.Type != Particle.TYPE.FIRE)
                     continue;
                 //If we aren't updating the particle, don't queue it for updates
                 if(particle.Asleep)
@@ -536,26 +535,6 @@ namespace PowderToy
         //Grid Calculations
         //============================================================================================================//
 
-
-        /*private GridLocationDetails IsSpaceOccupiedDetailed(in int x, in int y)
-        {
-            if (GridHelper.IsLegalCoordinate(x, y) == false)
-                return new GridLocationDetails(false, default, default);
-            
-            var gridIndex = GridHelper.CoordinateToIndex(x, y);
-
-            if (_gridPositions[gridIndex].IsOccupied == false)
-                return new GridLocationDetails(true, false, default);
-
-            var particleIndex = _gridPositions[gridIndex].ParticleIndex;
-            //var particle = _activeParticles[particleIndex];
-
-            if (_activeParticles[particleIndex].KillNextTick)
-                return new GridLocationDetails(true, false, default);
-            
-            return new GridLocationDetails(true, true, (uint)particleIndex);
-        }*/
-
         /// <summary>
         /// Gets information about the grid position such as if the location exists on the grid, whether it is occupied,
         /// and if occupied by whom (by Active Particle index).
@@ -581,15 +560,6 @@ namespace PowderToy
             gridLocationDetails.IsLegal = true;
             gridLocationDetails.IsOccupied = true;
             gridLocationDetails.OccupierIndex = (uint)_gridPositions[index].ParticleIndex;
-
-            return;
-
-            /*var particleIndex = _gridPositions[index].ParticleIndex;
-            //var particle = _activeParticles[particleIndex];
-
-            return _activeParticles[particleIndex].KillNextTick
-                ? GridLocationDetails.LegalEmpty
-                : new GridLocationDetails(true, true, (uint)particleIndex);*/
         }
 
         private bool IsSpaceOccupied(in int x, in int y)
@@ -600,16 +570,7 @@ namespace PowderToy
 
             var gridIndex = GridHelper.CoordinateToIndex(x, y);
 
-            if (_gridPositions[gridIndex].IsOccupied == false)
-                return false;
-
-            /*var particleIndex = _gridPositions[gridIndex].ParticleIndex;
-            var particle = _activeParticles[particleIndex];
-
-            if (particle.KillNextTick)
-                return false;*/
-            
-            return true;
+            return _gridPositions[gridIndex].IsOccupied;
         }
         
         private bool IsIndexOccupied(in int index)
@@ -618,17 +579,7 @@ namespace PowderToy
             if (index < 0)
                 return true;
 
-            if (_gridPositions[index].IsOccupied == false)
-                return false;
-
-            /*//FIXME Do I still need this portion?
-            var particleIndex = _gridPositions[index].ParticleIndex;
-            var particle = _activeParticles[particleIndex];
-
-            if (particle.KillNextTick)
-                return false;*/
-            
-            return true;
+            return _gridPositions[index].IsOccupied;
         }
 
         //============================================================================================================//
