@@ -65,21 +65,11 @@ namespace PowderToy
         /// Used exclusively by IsSpaceOccupiedDetailed() to return information foregoing the use of an anonymous type/Tuple.
         /// Do not use for anything other than fast obtaining of information on a grid location.
         /// </summary>
-        private readonly struct GridLocationDetails
+        private struct GridLocationDetails
         {
-            public static readonly GridLocationDetails Illegal = default;
-            public static readonly GridLocationDetails LegalEmpty = new GridLocationDetails(true, default, default);
-            
-            public readonly bool IsLegal;
-            public readonly bool IsOccupied;
-            public readonly uint OccupierIndex;
-
-            public GridLocationDetails(in bool isLegal, in bool isOccupied, in uint occupierIndex)
-            {
-                IsLegal = isLegal;
-                IsOccupied = isOccupied;
-                OccupierIndex = occupierIndex;
-            }
+            public bool IsLegal;
+            public bool IsOccupied;
+            public uint OccupierIndex;
         }
         //Properties
         //============================================================================================================//        
@@ -109,6 +99,8 @@ namespace PowderToy
         private ParticleRenderer _particleRenderer;
 
         private bool gridRequiresCleaning;
+
+        private GridLocationDetails _gridLocationDetails;
 
         //Collection of Grid Elements
         //------------------------------------------------//
@@ -544,14 +536,8 @@ namespace PowderToy
         //Grid Calculations
         //============================================================================================================//
 
-        /// <summary>
-        /// Gets information about the grid position such as if the location exists on the grid, whether it is occupied,
-        /// and if occupied by whom (by Active Particle index).
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <returns></returns>
-        private GridLocationDetails IsSpaceOccupiedDetailed(in int x, in int y)
+
+        /*private GridLocationDetails IsSpaceOccupiedDetailed(in int x, in int y)
         {
             if (GridHelper.IsLegalCoordinate(x, y) == false)
                 return new GridLocationDetails(false, default, default);
@@ -568,22 +554,42 @@ namespace PowderToy
                 return new GridLocationDetails(true, false, default);
             
             return new GridLocationDetails(true, true, (uint)particleIndex);
-        }
-        
-        private GridLocationDetails IsIndexOccupiedDetailed(in int index)
+        }*/
+
+        /// <summary>
+        /// Gets information about the grid position such as if the location exists on the grid, whether it is occupied,
+        /// and if occupied by whom (by Active Particle index).
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="gridLocationDetails"></param>
+        /// <returns></returns>
+        private void IsIndexOccupiedDetailed(in int index, ref GridLocationDetails gridLocationDetails)
         {
             if (index < 0)
-                return GridLocationDetails.Illegal;
-            
-            if (_gridPositions[index].IsOccupied == false)
-                return GridLocationDetails.LegalEmpty;
+            {
+                gridLocationDetails.IsLegal = false;
+                return;
+            }
 
-            var particleIndex = _gridPositions[index].ParticleIndex;
+            if (_gridPositions[index].IsOccupied == false)
+            {
+                gridLocationDetails.IsLegal = true;
+                gridLocationDetails.IsOccupied = false;
+                return;
+            }
+
+            gridLocationDetails.IsLegal = true;
+            gridLocationDetails.IsOccupied = true;
+            gridLocationDetails.OccupierIndex = (uint)_gridPositions[index].ParticleIndex;
+
+            return;
+
+            /*var particleIndex = _gridPositions[index].ParticleIndex;
             //var particle = _activeParticles[particleIndex];
 
             return _activeParticles[particleIndex].KillNextTick
                 ? GridLocationDetails.LegalEmpty
-                : new GridLocationDetails(true, true, (uint)particleIndex);
+                : new GridLocationDetails(true, true, (uint)particleIndex);*/
         }
 
         private bool IsSpaceOccupied(in int x, in int y)
@@ -597,11 +603,11 @@ namespace PowderToy
             if (_gridPositions[gridIndex].IsOccupied == false)
                 return false;
 
-            var particleIndex = _gridPositions[gridIndex].ParticleIndex;
+            /*var particleIndex = _gridPositions[gridIndex].ParticleIndex;
             var particle = _activeParticles[particleIndex];
 
             if (particle.KillNextTick)
-                return false;
+                return false;*/
             
             return true;
         }
@@ -615,12 +621,12 @@ namespace PowderToy
             if (_gridPositions[index].IsOccupied == false)
                 return false;
 
-            //FIXME Do I still need this portion?
+            /*//FIXME Do I still need this portion?
             var particleIndex = _gridPositions[index].ParticleIndex;
             var particle = _activeParticles[particleIndex];
 
             if (particle.KillNextTick)
-                return false;
+                return false;*/
             
             return true;
         }
@@ -648,12 +654,13 @@ namespace PowderToy
                 /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
                     return false;*/
                 //IF the space is occupied, leave early
-                var gridLocationDetails = IsIndexOccupiedDetailed(newGridIndex);
-                var spaceOccupied = gridLocationDetails.IsOccupied;
-                var occupierIndex = gridLocationDetails.OccupierIndex;
+                IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
 
-                if (gridLocationDetails.IsLegal == false)
+                if (_gridLocationDetails.IsLegal == false)
                     return false;
+                
+                var spaceOccupied = _gridLocationDetails.IsOccupied;
+                var occupierIndex = _gridLocationDetails.OccupierIndex;
 
                 Particle occupier = default;
 
