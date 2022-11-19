@@ -46,20 +46,21 @@ namespace PowderToy
 
         public static Particle ConvertToFire(in Particle toConvert)
         {
-            var template = _templates[Particle.TYPE.FIRE];
+            var fireTemplate = _templates[Particle.TYPE.FIRE];
+            var fromTemplate = _templates[toConvert.Type];
             
             return new Particle(
                 Particle.TYPE.FIRE,
                 toConvert.Material,
-                template.GetRandomColor(),
-                template.hasLifetime,
+                fireTemplate.GetRandomColor(),
+                fireTemplate.hasLifetime,
                 false,
                 toConvert.Index,
                 toConvert.XCoord,
                 toConvert.YCoord)
             {
-                Lifetime = template.GetRandomLifetime(),
-                ChanceToBurn = (uint)template.burnChance
+                Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier),
+                ChanceToBurn = (uint)fireTemplate.burnChance
             };
             
         }

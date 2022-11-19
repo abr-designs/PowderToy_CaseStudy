@@ -31,18 +31,20 @@ namespace PowderToy.ScriptableObjects
             public bool canBurn;
             [Range(0, 100)]
             public int burnChance;
+            [Min(0.1f)]
+            public float burnLifeMultiplier;
             
             public Color32 GetRandomColor()
             {
                 return gradient.Evaluate(Random.value);
             }
 
-            public uint GetRandomLifetime()
+            public uint GetRandomLifetime(in float multiplier = 1f)
             {
                 if (hasLifetime == false)
                     return 0;
 
-                return (uint)Random.Range(lifetimeMin, lifetimeMax + 1);
+                return (uint)Mathf.RoundToInt(Random.Range(lifetimeMin, lifetimeMax + 1) * multiplier);
             }
         }
 

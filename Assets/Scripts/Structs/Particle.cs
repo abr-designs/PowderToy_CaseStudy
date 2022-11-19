@@ -24,7 +24,8 @@ namespace PowderToy
             WATER,
             WOOD,
             STEAM,
-            FIRE
+            FIRE,
+            OIL
         }
 
         public enum MATERIAL

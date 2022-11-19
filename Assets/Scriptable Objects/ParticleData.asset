@@ -50,6 +50,7 @@ MonoBehaviour:
     lifetimeMax: 0
     canBurn: 0
     burnChance: 0
+    burnLifeMultiplier: 1
   - name: Water
     type: 2
     material: 3
@@ -87,6 +88,7 @@ MonoBehaviour:
     lifetimeMax: 0
     canBurn: 0
     burnChance: 0
+    burnLifeMultiplier: 1
   - name: Wood
     type: 3
     material: 1
@@ -123,7 +125,8 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    burnChance: 25
+    burnChance: 1
+    burnLifeMultiplier: 7.5
   - name: Steam
     type: 4
     material: 4
@@ -161,6 +164,7 @@ MonoBehaviour:
     lifetimeMax: 0
     canBurn: 0
     burnChance: 0
+    burnLifeMultiplier: 1
   - name: Fire
     type: 5
     material: 4
@@ -198,3 +202,42 @@ MonoBehaviour:
     lifetimeMax: 60
     canBurn: 0
     burnChance: 0
+    burnLifeMultiplier: 1
+  - name: Oil
+    type: 6
+    material: 3
+    gradient:
+      serializedVersion: 2
+      key0: {r: 0.16299999, g: 0.10168808, b: 0.061311934, a: 1}
+      key1: {r: 0.234, g: 0.14485714, b: 0.08914287, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    hasLifetime: 0
+    lifetimeMin: 0
+    lifetimeMax: 0
+    canBurn: 1
+    burnChance: 2
+    burnLifeMultiplier: 10
