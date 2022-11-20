@@ -2,20 +2,11 @@ using UnityEngine;
 
 namespace PowderToy
 {
+    //TODO Need to investigate whether this is better as a class to reduce constant memory copy calls
     public struct Particle
     {
         public const int WAIT_TO_SLEEP = 50;
         public static readonly Particle Empty = new Particle();
-
-        /*//FIXME Does this make sense to exist somewhere else?
-        private static readonly Dictionary<TYPE, MATERIAL> ParticleMaterials = new Dictionary<TYPE, MATERIAL>()
-        {
-            [TYPE.SAND] = MATERIAL.POWDER,
-            [TYPE.WATER] = MATERIAL.LIQUID,
-            [TYPE.WOOD] = MATERIAL.SOLID,
-            [TYPE.STEAM] = MATERIAL.GAS,
-            [TYPE.FIRE] = MATERIAL.GAS,
-        };*/
 
         public enum TYPE
         {
@@ -49,6 +40,8 @@ namespace PowderToy
         
         public bool KillNextTick;
 
+        public readonly bool HasDensity;
+        public uint Density;
 
         public readonly bool HasLifeSpan;
         public uint Lifetime;
@@ -61,6 +54,7 @@ namespace PowderToy
             in MATERIAL material, 
             in Color32 color, 
             
+            in bool hasDensity,
             in bool hasLifeSpan,
             in bool canBurn,
             
@@ -79,6 +73,9 @@ namespace PowderToy
 
             XCoord = x;
             YCoord = y;
+
+            HasDensity = hasDensity;
+            Density = 10;
 
             HasLifeSpan = hasLifeSpan;
             Lifetime = 0;

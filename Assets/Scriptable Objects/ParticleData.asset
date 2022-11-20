@@ -45,6 +45,8 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 3
       m_NumAlphaKeys: 2
+    hasDensity: 0
+    density: 0
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0
@@ -83,6 +85,8 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 3
       m_NumAlphaKeys: 2
+    hasDensity: 1
+    density: 1
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0
@@ -121,6 +125,8 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 3
       m_NumAlphaKeys: 2
+    hasDensity: 0
+    density: 0
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0
@@ -159,6 +165,8 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 3
       m_NumAlphaKeys: 2
+    hasDensity: 0
+    density: 0
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0
@@ -197,6 +205,8 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
+    hasDensity: 0
+    density: 0
     hasLifetime: 1
     lifetimeMin: 10
     lifetimeMax: 60
@@ -235,6 +245,8 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
+    hasDensity: 1
+    density: 0.5
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0

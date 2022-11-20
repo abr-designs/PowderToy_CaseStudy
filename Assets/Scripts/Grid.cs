@@ -688,9 +688,33 @@ namespace PowderToy
                 in int currentGridIndex,
                 ref Particle myParticle)
             {
-                /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
-                    return false;*/
-                //IF the space is occupied, leave early
+                if (myParticle.HasDensity)
+                {
+                    IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
+
+                    if (_gridLocationDetails.IsLegal == false)
+                        return false;
+
+                    if (_gridLocationDetails.IsOccupied)
+                    {
+                        var occupierParticle = _activeParticles[_gridLocationDetails.OccupierIndex];
+
+                        if (occupierParticle.Material == Particle.MATERIAL.LIQUID &&
+                             occupierParticle.Type != myParticle.Type &&
+                             occupierParticle.HasDensity)
+                        {
+                            var didSwap = LiquidParticleDensityCheck(
+                                currentGridIndex, 
+                                newGridIndex, 
+                                ref myParticle,
+                                ref occupierParticle);
+
+                            if (didSwap)
+                                return true;
+                        }
+                    }
+                }
+                //If the particle doesn't care about density, don't go through the expensive dance above
                 if (IsIndexOccupied(newGridIndex))
                     return false;
 
@@ -787,7 +811,9 @@ namespace PowderToy
         {
             //Check for things to burn
             //------------------------------------------------------------------//
-
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
             for (var i = 0; i < 8; i++)
             {
                 var index = particleSurroundings[i];
@@ -811,6 +837,100 @@ namespace PowderToy
 
                 _activeParticles[gridPos.ParticleIndex] = posParticle;
             }
+        }
+
+        private bool LiquidParticleDensityCheck(
+            in int fromGridIndex, 
+            in int toGridIndex, 
+            ref Particle fromParticle,
+            ref Particle toParticle)
+        {
+            //Compare densities, and swap if necessary
+            //------------------------------------------------------------------//
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            //TODO Determine if just checking the one below is enough
+
+            if (toGridIndex < 0)
+                return false;
+
+            var fromGridPos = _gridPositions[fromGridIndex];
+            var toGridPos = _gridPositions[toGridIndex];
+
+            if (toGridPos.IsOccupied == false || fromGridPos.IsOccupied == false)
+                return false;
+
+            /*//Make sure that both particles want to compare Density
+            if ((toParticle.HasDensity && fromParticle.HasDensity) == false)
+                return;*/
+
+            //If the one below already has a greater density
+            if (toParticle.Density >= fromParticle.Density)
+                return false;
+
+            SwapParticlePositions(fromGridIndex, toGridIndex,
+                ref fromGridPos, ref toGridPos,
+                ref fromParticle, ref toParticle);
+
+            _activeParticles[fromParticle.Index] = fromParticle;
+            _activeParticles[toParticle.Index] = toParticle;
+            return true;
+        }
+
+        /*private void SwapParticlePositions(in int fromGridIndex, in int toGridIndex, in bool updateParticles = true)
+        {
+            var currentGridPos = _gridPositions[fromGridIndex];
+            var newGridPos = _gridPositions[toGridIndex];
+            
+            var currentParticle = _activeParticles[currentGridPos.ParticleIndex];
+            var belowParticle = _activeParticles[newGridPos.ParticleIndex];
+            
+            //Otherwise we swap the two particles, and update the grid
+            currentGridPos.ParticleIndex = belowParticle.Index;
+            newGridPos.ParticleIndex = currentParticle.Index;
+
+            _gridPositions[fromGridIndex] = currentGridPos;
+            _gridPositions[toGridIndex] = newGridPos;
+            
+            //and Update the particle Coordinates
+            var currentX = currentParticle.XCoord;
+            var currentY = currentParticle.YCoord;
+
+            currentParticle.XCoord = belowParticle.XCoord;
+            currentParticle.YCoord = belowParticle.YCoord;
+
+            belowParticle.XCoord = currentX;
+            belowParticle.YCoord = currentY;
+
+            if (updateParticles == false)
+                return;
+
+            _activeParticles[currentParticle.Index] = currentParticle;
+            _activeParticles[belowParticle.Index] = belowParticle;
+        }*/
+        
+        private void SwapParticlePositions(in int fromGridIndex, in int toGridIndex,
+            ref GridPos fromGridPos, ref GridPos toGridPos,
+            ref Particle fromParticle, ref Particle toParticle)
+        {
+            //Otherwise we swap the two particles, and update the grid
+            fromGridPos.ParticleIndex = toParticle.Index;
+            toGridPos.ParticleIndex = fromParticle.Index;
+
+            _gridPositions[fromGridIndex] = fromGridPos;
+            _gridPositions[toGridIndex] = toGridPos;
+            
+            //and Update the particle Coordinates
+            var fromX = fromParticle.XCoord;
+            var fromY = fromParticle.YCoord;
+
+           fromParticle.XCoord = toParticle.XCoord;
+           fromParticle.YCoord = toParticle.YCoord;
+
+           toParticle.XCoord = fromX;
+           toParticle.YCoord = fromY;
+
         }
 
         //============================================================================================================//
