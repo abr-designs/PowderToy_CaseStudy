@@ -6,9 +6,13 @@ using System.Runtime.CompilerServices;
 using PowderToy.Utilities;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace PowderToy
 {
+    //Rules:
+    //#1. If an index is Illegal, then it will be equal to -1
+    
     public class Grid : MonoBehaviour
     {
         //Structs
@@ -57,6 +61,16 @@ namespace PowderToy
             }
         }
 
+        /// <summary>
+        /// Used exclusively by IsSpaceOccupiedDetailed() to return information foregoing the use of an anonymous type/Tuple.
+        /// Do not use for anything other than fast obtaining of information on a grid location.
+        /// </summary>
+        private struct GridLocationDetails
+        {
+            public bool IsLegal;
+            public bool IsOccupied;
+            public uint OccupierIndex;
+        }
         //Properties
         //============================================================================================================//        
         
@@ -86,6 +100,8 @@ namespace PowderToy
 
         private bool gridRequiresCleaning;
 
+        private GridLocationDetails _gridLocationDetails;
+
         //Collection of Grid Elements
         //------------------------------------------------//
         
@@ -97,6 +113,9 @@ namespace PowderToy
         
         //Complete Grid Layout to track who is where
         private GridPos[] _gridPositions;
+        
+        private int[] _particleSurroundings;
+
 
         //Unity Functions
         //============================================================================================================//
@@ -109,6 +128,7 @@ namespace PowderToy
         // Start is called before the first frame update
         private void Start()
         {
+            
             var count = size.x * size.y;
             _gridPositions = new GridPos[count];
             _activeParticles = new Particle[count];
@@ -128,6 +148,9 @@ namespace PowderToy
             }
 
             //------------------------------------------------//
+            
+            _particleSurroundings = new int[9];
+
 
             _particleRenderer = FindObjectOfType<ParticleRenderer>();
 
@@ -220,8 +243,9 @@ namespace PowderToy
                 return;
             
             var newIndex = _particleCount++;
-            var newColor = _particleRenderer.GetParticleColor(particleType);
-            var newParticle = new Particle(particleType, newColor, newIndex, newX, newY);
+            //var newColor = _particleRenderer.GetParticleColor(particleType);
+            //var newParticle = new Particle(particleType, newColor, newIndex, newX, newY);
+            var newParticle = ParticleFactory.CreateParticle(particleType, newIndex, newX, newY);
 
             _activeParticles[newIndex] = newParticle;
 
@@ -282,12 +306,43 @@ namespace PowderToy
             switch (particle.Material)
             {
                 case Particle.MATERIAL.SOLID:
-                    KillParticle(particle);
-                    break;
                 case Particle.MATERIAL.POWDER:
                 case Particle.MATERIAL.LIQUID:
                 case Particle.MATERIAL.GAS:
-                    particle.WillBeKilled = true;
+                    particle.KillNextTick = true;
+                    _activeParticles[gridPos.ParticleIndex] = particle;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+
+            gridPos.IsOccupied = false;
+            _gridPositions[gridIndex] = gridPos;
+            
+            gridRequiresCleaning = true;
+        }
+        private void MarkParticleForDeath(ref Particle particle)
+        {
+            var x = particle.XCoord;
+            var y = particle.YCoord;
+
+            if(IsSpaceOccupied(x, y) == false)
+                return;
+
+            var gridIndex = GridHelper.CoordinateToIndex(x, y);
+            var gridPos = _gridPositions[gridIndex];
+
+            //var particle = _activeParticles[gridPos.ParticleIndex];
+            //We only want to queue deletion for things that move, solid things are safe to be deleted now.
+            //This is because solid particles do not get updated the same way
+            //FIXME once fire is added the above statement may need to change
+            switch (particle.Material)
+            {
+                case Particle.MATERIAL.SOLID:
+                case Particle.MATERIAL.POWDER:
+                case Particle.MATERIAL.LIQUID:
+                case Particle.MATERIAL.GAS:
+                    particle.KillNextTick = true;
                     _activeParticles[gridPos.ParticleIndex] = particle;
                     break;
                 default:
@@ -317,7 +372,7 @@ namespace PowderToy
         }
 
         //==================================================================================//
-        
+
         private void UpdateParticles()
         {
             for (var i = 0; i < _sizeY; i++)
@@ -331,31 +386,46 @@ namespace PowderToy
                     //Check for napping particles OR ones that were marked as empty
                     if(particle.Asleep || particle.Type == Particle.TYPE.NONE)
                         continue;
-
-                    if (particle.WillBeKilled)
+                   
+                    if (particle.HasLifeSpan && particle.Lifetime <= 0)
+                        MarkParticleForDeath(ref particle);
+                    
+                    if (particle.KillNextTick)
                     {
                         KillParticle(particle);
                         continue;
                     }
-                    
-
                     bool didUpdate;
+
+                    GridHelper.GetParticleSurroundings(particle.XCoord, particle.YCoord, ref _particleSurroundings);
+
+                    if (particle.Type == Particle.TYPE.FIRE)
+                        FireParticleBurnCheck(_particleSurroundings);
 
                     switch (particle.Material)
                     {
+                        case Particle.MATERIAL.SOLID when particle.Type == Particle.TYPE.FIRE:
+                            didUpdate = true;
+                            break;
                         case Particle.MATERIAL.SOLID:
                             continue;
                         case Particle.MATERIAL.POWDER:
-                            didUpdate = UpdatePowderParticle(ref particle);
+                            didUpdate = UpdatePowderParticle(_particleSurroundings, ref particle);
                             break;
                         case Particle.MATERIAL.LIQUID:
-                            didUpdate = UpdateLiquidParticle(ref particle);
+                            didUpdate = UpdateLiquidParticle(_particleSurroundings, ref particle);
                             break;
                         case Particle.MATERIAL.GAS:
-                            didUpdate = UpdateGasParticle(ref particle);
+                            didUpdate = UpdateGasParticle(_particleSurroundings, ref particle);
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();
+                    }
+
+                    if (particle.HasLifeSpan)
+                    {
+                        particle.Lifetime--;
+                        didUpdate = true;
                     }
 
                     if (didUpdate)
@@ -424,14 +494,22 @@ namespace PowderToy
                 //We can't move nothing
                 if(particle.Type == Particle.TYPE.NONE)
                     continue;
-                //Solid Particles do not move
-                if(particle.Material == Particle.MATERIAL.SOLID)
+                //Solid Particles do not move thus do not need to be updated. Unless they're on fire.
+                if(particle.Material == Particle.MATERIAL.SOLID && particle.Type != Particle.TYPE.FIRE)
                     continue;
                 //If we aren't updating the particle, don't queue it for updates
                 if(particle.Asleep)
                     continue;
 
-                _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
+                try
+                {
+                    _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
             }
         }
 
@@ -456,98 +534,119 @@ namespace PowderToy
         
         //Grid Calculations
         //============================================================================================================//
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private bool IsSpaceOccupied(in int x, in int y, out Particle occupier)
+
+        /// <summary>
+        /// Gets information about the grid position such as if the location exists on the grid, whether it is occupied,
+        /// and if occupied by whom (by Active Particle index).
+        /// </summary>
+        /// <param name="index"></param>
+        /// <param name="gridLocationDetails"></param>
+        /// <returns></returns>
+        private void IsIndexOccupiedDetailed(in int index, ref GridLocationDetails gridLocationDetails)
         {
-            occupier = Particle.Empty;
-            
-            if (GridHelper.IsLegalCoordinate(x, y) == false)
-                return true;
-            
-            var gridIndex = GridHelper.CoordinateToIndex(x, y);
+            if (index < 0)
+            {
+                gridLocationDetails.IsLegal = false;
+                return;
+            }
 
-            if (_gridPositions[gridIndex].IsOccupied == false)
-                return false;
+            if (_gridPositions[index].IsOccupied == false)
+            {
+                gridLocationDetails.IsLegal = true;
+                gridLocationDetails.IsOccupied = false;
+                return;
+            }
 
-            var particleIndex = _gridPositions[gridIndex].ParticleIndex;
-            var particle = _activeParticles[particleIndex];
-
-            if (particle.WillBeKilled)
-                return false;
-            
-            occupier = particle;
-
-            return true;
+            gridLocationDetails.IsLegal = true;
+            gridLocationDetails.IsOccupied = true;
+            gridLocationDetails.OccupierIndex = (uint)_gridPositions[index].ParticleIndex;
         }
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+
         private bool IsSpaceOccupied(in int x, in int y)
         {
+            //TODO Might need to apply the same fix as IsSpaceOccupiedDetailed() for grid space legality
             if (GridHelper.IsLegalCoordinate(x, y) == false)
                 return true;
 
             var gridIndex = GridHelper.CoordinateToIndex(x, y);
 
-            if (_gridPositions[gridIndex].IsOccupied == false)
-                return false;
-
-            var particleIndex = _gridPositions[gridIndex].ParticleIndex;
-            var particle = _activeParticles[particleIndex];
-
-            if (particle.WillBeKilled)
-                return false;
-            
-            return true;
+            return _gridPositions[gridIndex].IsOccupied;
         }
         
-        
+        private bool IsIndexOccupied(in int index)
+        {
+            //TODO Might need to apply the same fix as IsSpaceOccupiedDetailed() for grid space legality
+            if (index < 0)
+                return true;
+
+            return _gridPositions[index].IsOccupied;
+        }
+
         //============================================================================================================//
 
-        private bool UpdatePowderParticle(ref Particle particle)
+        private bool UpdatePowderParticle(in int[] particleSurroundings, ref Particle particle)
         {
             //var originalCoordinate = particle.Coordinate;
             var originalX = particle.XCoord;
             var originalY = particle.YCoord;
 
-            if(particle.Asleep)
+            if (particle.Asleep)
                 return false;
 
             //------------------------------------------------------------------//
-            
-            bool TrySetNewPosition(in int xOffset, in int yOffset, ref Particle myParticle)
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            bool TrySetNewPosition(
+                in int newX,
+                in int newY,
+                in int newGridIndex,
+                in int currentGridIndex,
+                ref Particle myParticle)
             {
-                //var testCoordinate = myParticle.Coordinate + offset;
-                var newX = originalX + xOffset;
-                var newY = originalY + yOffset;
-                
+                /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
+                    return false;*/
                 //IF the space is occupied, leave early
-                var spaceOccupied = IsSpaceOccupied(newX, newY, out var occupier);
+                IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
 
-                if (spaceOccupied && occupier.Type != Particle.TYPE.WATER)
+                if (_gridLocationDetails.IsLegal == false)
                     return false;
+                
+                var spaceOccupied = _gridLocationDetails.IsOccupied;
+                var occupierIndex = _gridLocationDetails.OccupierIndex;
+
+                Particle occupier = default;
+
+                if (spaceOccupied)
+                {
+                    occupier = _activeParticles[occupierIndex];
+
+                    if (occupier.Type != Particle.TYPE.WATER)
+                        return false;
+                }
 
                 myParticle.XCoord = newX;
                 myParticle.YCoord = newY;
-                
+
                 //Test for water
                 //------------------------------------------------------------------//
+                //FIXME I need a new behaviour for this
                 if (occupier.Type == Particle.TYPE.WATER)
                 {
                     //occupier.Coordinate = originalCoordinate;
                     occupier.XCoord = originalX;
                     occupier.YCoord = originalY;
-                    _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = new GridPos
+                    _gridPositions[currentGridIndex] = new GridPos
                     {
                         IsOccupied = true,
-                        ParticleIndex = occupier.Index
+                        ParticleIndex = (int)occupierIndex
                     };
-                    _activeParticles[occupier.Index] = occupier;
+                    _activeParticles[occupierIndex] = occupier;
                 }
                 else
-                    _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
+                    _gridPositions[currentGridIndex] = GridPos.Empty;
                 //------------------------------------------------------------------//
 
 
-                _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
+                _gridPositions[newGridIndex] = new GridPos
                 {
                     IsOccupied = true,
                     ParticleIndex = myParticle.Index
@@ -555,140 +654,163 @@ namespace PowderToy
                 _activeParticles[myParticle.Index] = myParticle;
                 return true;
             }
-            
-            //------------------------------------------------------------------//
-            
-            if (TrySetNewPosition(0 ,-1, ref particle))
-                return true;
-            if (TrySetNewPosition(-1, -1, ref particle))
-                return true;
-            if (TrySetNewPosition(1, -1, ref particle))
-                return true;
-            
-            return false;
 
-            /*if (IsSpaceOccupied(coordinate.x, coordinate.y - 1, out var occupier) == false)
-            {
-                particle.Coordinate += Vector2Int.down;
-                if (occupier.Type == Particle.TYPE.WATER)
-                {
-                    occupier.Coordinate = coordinate;
-                    _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = occupier;
-                }
-                else
-                    _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = Particle.Empty;
-                
-                _particlePositions[GridHelper.CoordinateToIndex(particle.Coordinate)] = particle;
+            //------------------------------------------------------------------//
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            var currentGridIndex = particleSurroundings[4];
+            if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], currentGridIndex, ref particle))
                 return true;
-            }
-            if (IsSpaceOccupied(coordinate.x - 1, coordinate.y - 1, out occupier) == false)
-            {
-                particle.Coordinate += new Vector2Int(-1, -1);
-                _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = Particle.Empty;
-                _particlePositions[GridHelper.CoordinateToIndex(particle.Coordinate)] = particle;
+            if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], currentGridIndex,
+                    ref particle))
                 return true;
-            }
-            if (IsSpaceOccupied(coordinate.x + 1, coordinate.y - 1, out occupier) == false)
-            {
-                particle.Coordinate += new Vector2Int(1, -1);
-                _particlePositions[GridHelper.CoordinateToIndex(coordinate)] = Particle.Empty;
-                _particlePositions[GridHelper.CoordinateToIndex(particle.Coordinate)] = particle;
+            if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], currentGridIndex,
+                    ref particle))
                 return true;
-            }*/
+
+            return false;
         }
-        
-        private bool UpdateLiquidParticle(ref Particle particle)
+
+        //TODO Need to implement a position resolving function when the liquid particle needs to move
+        private bool UpdateLiquidParticle(in int[] particleSurroundings, ref Particle particle)
         {
             //var coordinate = particle.Coordinate;
             var originalX = particle.XCoord;
             var originalY = particle.YCoord;
 
             //------------------------------------------------------------------//
-            
-            bool TrySetNewPosition(in int xOffset, in int yOffset, ref Particle myParticle)
+
+            bool TrySetNewPosition(
+                in int newX,
+                in int newY,
+                in int newGridIndex,
+                in int currentGridIndex,
+                ref Particle myParticle)
             {
-                //var testCoordinate = myParticle.Coordinate + offset;
-                var newX = originalX + xOffset;
-                var newY = originalY + yOffset;
+                /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
+                    return false;*/
                 //IF the space is occupied, leave early
-                if (IsSpaceOccupied(newX, newY)) 
+                if (IsIndexOccupied(newGridIndex))
                     return false;
-                
+
                 //myParticle.Coordinate += offset;
                 myParticle.XCoord = newX;
                 myParticle.YCoord = newY;
 
-                _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
-                
-                _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
+                _gridPositions[currentGridIndex] = GridPos.Empty;
+
+                _gridPositions[newGridIndex] = new GridPos
                 {
                     IsOccupied = true,
                     ParticleIndex = myParticle.Index
                 };
                 return true;
             }
-            
+
             //------------------------------------------------------------------//
-            
-            if (TrySetNewPosition(0, -1, ref particle))
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            var originalIndex = particleSurroundings[4];
+            if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(-1, -1, ref particle))
+            if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(1, -1, ref particle))
+            if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(-1, 0, ref particle))
+            if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(1, 0, ref particle))
+            if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex, ref particle))
                 return true;
-            
+
             return false;
         }
-        
-        private bool UpdateGasParticle(ref Particle particle)
+
+        private bool UpdateGasParticle(in int[] particleSurroundings, ref Particle particle)
         {
             //var coordinate = particle.Coordinate;
             var originalX = particle.XCoord;
             var originalY = particle.YCoord;
 
             //------------------------------------------------------------------//
-            
-            bool TrySetNewPosition(in int xOffset, in int yOffset, ref Particle myParticle)
+
+            bool TrySetNewPosition(
+                in int newX,
+                in int newY,
+                in int newGridIndex,
+                in int currentGridIndex,
+                ref Particle myParticle)
             {
-                //var testCoordinate = myParticle.Coordinate + offset;
-                var newX = originalX + xOffset;
-                var newY = originalY + yOffset;
+                /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
+                    return false;*/
                 //IF the space is occupied, leave early
-                if (IsSpaceOccupied(newX, newY)) 
+                if (IsIndexOccupied(newGridIndex))
                     return false;
-                
+
                 //myParticle.Coordinate += offset;
                 myParticle.XCoord = newX;
                 myParticle.YCoord = newY;
 
-                _gridPositions[GridHelper.CoordinateToIndex(originalX, originalY)] = GridPos.Empty;
-                
-                _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
+                _gridPositions[currentGridIndex] = GridPos.Empty;
+
+                _gridPositions[newGridIndex] = new GridPos
                 {
                     IsOccupied = true,
                     ParticleIndex = myParticle.Index
                 };
                 return true;
             }
-            
+
             //------------------------------------------------------------------//
-            
-            if (TrySetNewPosition(0, 1, ref particle))
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            var originalIndex = particleSurroundings[4];
+            if (particleSurroundings[1] >= 0 && TrySetNewPosition(originalX, originalY + 1, particleSurroundings[1], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(-1, 1, ref particle))
+            if (particleSurroundings[0] >= 0 && TrySetNewPosition(originalX - 1, originalY + 1, particleSurroundings[0], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(1, 1, ref particle))
+            if (particleSurroundings[2] >= 0 && TrySetNewPosition(originalX + 1, originalY + 1, particleSurroundings[2], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(-1, 0, ref particle))
+            if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, ref particle))
                 return true;
-            if (TrySetNewPosition(1, 0, ref particle))
+            if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex, ref particle))
                 return true;
-            
+
             return false;
+        }
+
+        //============================================================================================================//
+
+        private void FireParticleBurnCheck(in int[] particleSurroundings)
+        {
+            //Check for things to burn
+            //------------------------------------------------------------------//
+
+            for (var i = 0; i < 8; i++)
+            {
+                var index = particleSurroundings[i];
+                if (index < 0)
+                    continue;
+
+                var gridPos = _gridPositions[index];
+                if (gridPos.IsOccupied == false)
+                    continue;
+
+                var posParticle = _activeParticles[gridPos.ParticleIndex];
+
+                if (posParticle.CanBurn == false)
+                    continue;
+
+                //TODO Should probably increase the chance of burning over time, when back-to-back calls occur
+                if (Random.Range(0, 100) > posParticle.ChanceToBurn)
+                    continue;
+
+                posParticle = ParticleFactory.ConvertToFire(posParticle);
+
+                _activeParticles[gridPos.ParticleIndex] = posParticle;
+            }
         }
 
         //============================================================================================================//

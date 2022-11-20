@@ -14,6 +14,9 @@ namespace PowderToy
         public static int SpawnRadius { get; private set; }
 
         [SerializeField]
+        private bool usePressAndHold = true;
+
+        [SerializeField]
         private Particle.TYPE selectedParticleType;
         
         private Vector2Int _gridSize;
@@ -91,6 +94,8 @@ namespace PowderToy
                 case Particle.TYPE.WATER:
                 case Particle.TYPE.WOOD:
                 case Particle.TYPE.STEAM:
+                case Particle.TYPE.FIRE:
+                case Particle.TYPE.OIL:
                     Grid.QueuedCommand = new Command
                     {
                         Type = Command.TYPE.SPAWN_PARTICLE,
@@ -102,13 +107,16 @@ namespace PowderToy
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            if(usePressAndHold == false)
+                _mouseDown = false;
         }
 
         private void ToggleSpawnType()
         {
             var newType = (int)selectedParticleType;
             newType++;
-            if (newType > 4)
+            if (newType > 6)
                 newType = 0;
 
 
