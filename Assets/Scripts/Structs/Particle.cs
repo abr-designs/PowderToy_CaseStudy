@@ -3,7 +3,7 @@ using UnityEngine;
 namespace PowderToy
 {
     //TODO Need to investigate whether this is better as a class to reduce constant memory copy calls
-    public struct Particle
+    public class Particle
     {
         public const int WAIT_TO_SLEEP = 50;
         public static readonly Particle Empty = new Particle();
@@ -28,9 +28,9 @@ namespace PowderToy
             GAS
         }
 
-        public readonly TYPE Type;
-        public readonly MATERIAL Material;
-        public readonly Color32 Color; 
+        public TYPE Type;
+        public MATERIAL Material;
+        public Color32 Color; 
         
         public int Index;
         public int SleepCounter;
@@ -40,16 +40,16 @@ namespace PowderToy
         
         public bool KillNextTick;
 
-        public readonly bool HasDensity;
+        public bool HasDensity;
         public uint Density;
 
-        public readonly bool HasLifeSpan;
+        public bool HasLifeSpan;
         public uint Lifetime;
 
-        public readonly bool CanBurn;
+        public bool CanBurn;
         public uint ChanceToBurn;
 
-        public Particle(
+        /*public Particle(
             in TYPE type, 
             in MATERIAL material, 
             in Color32 color, 
@@ -82,6 +82,25 @@ namespace PowderToy
 
             CanBurn = canBurn;
             ChanceToBurn = 0;
+        }*/
+
+        public void CopyFrom(in Particle copyFrom)
+        {
+            SleepCounter = copyFrom.SleepCounter;
+            Asleep = copyFrom.Asleep;
+            KillNextTick = copyFrom.KillNextTick;
+            Type = copyFrom.Type;
+            Material = copyFrom.Material;
+            Color = copyFrom.Color;
+            Index = copyFrom.Index;
+            XCoord = copyFrom.XCoord;
+            YCoord = copyFrom.YCoord;
+            HasDensity = copyFrom.HasDensity;
+            Density = copyFrom.Density;
+            HasLifeSpan = copyFrom.HasLifeSpan;
+            Lifetime = copyFrom.Lifetime;
+            CanBurn = copyFrom.CanBurn;
+            ChanceToBurn = copyFrom.ChanceToBurn;
         }
     }
 }
