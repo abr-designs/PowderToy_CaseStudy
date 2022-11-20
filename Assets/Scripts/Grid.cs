@@ -927,6 +927,24 @@ namespace PowderToy
         }
 
         //============================================================================================================//
+
+#if UNITY_EDITOR
+
+        public (bool legal, bool occupied, int gridIndex, GridPos gridPos, Particle particle) GetParticleAtCoordinate(in int xCoord, in int yCoord)
+        {
+            if (GridHelper.IsLegalCoordinate(xCoord, yCoord) == false)
+                return (false, default, default, default, default);
+            
+            var gridIndex = GridHelper.CoordinateToIndex(xCoord, yCoord);
+            var gridPos = _gridPositions[gridIndex];
+            
+            if(gridPos.IsOccupied == false)
+                return (true, false, gridIndex, gridPos, null);
+
+            return (true, true, gridIndex, gridPos, _activeParticles[gridPos.ParticleIndex]);
+        }
+        
+#endif
         
     }
 
