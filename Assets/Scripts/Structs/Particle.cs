@@ -49,6 +49,8 @@ namespace PowderToy
         
         public bool KillNextTick;
 
+        public readonly bool HasDensity;
+        public uint Density;
 
         public readonly bool HasLifeSpan;
         public uint Lifetime;
@@ -61,6 +63,7 @@ namespace PowderToy
             in MATERIAL material, 
             in Color32 color, 
             
+            in bool hasDensity,
             in bool hasLifeSpan,
             in bool canBurn,
             
@@ -79,6 +82,9 @@ namespace PowderToy
 
             XCoord = x;
             YCoord = y;
+
+            HasDensity = hasDensity;
+            Density = 10;
 
             HasLifeSpan = hasLifeSpan;
             Lifetime = 0;

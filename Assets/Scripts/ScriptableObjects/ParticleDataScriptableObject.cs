@@ -21,6 +21,11 @@ namespace PowderToy.ScriptableObjects
             public Gradient gradient;
 
             [Space(10f)]
+            public bool hasDensity;
+            [Range(0f,2f)]
+            public float density;
+
+            [Space(10f)]
             public bool hasLifetime;
             [Min(0)]
             public int lifetimeMin;
@@ -45,6 +50,14 @@ namespace PowderToy.ScriptableObjects
                     return 0;
 
                 return (uint)Mathf.RoundToInt(Random.Range(lifetimeMin, lifetimeMax + 1) * multiplier);
+            }
+
+            public uint GetDensity()
+            {
+                if (hasDensity == false)
+                    return 0;
+
+                return (uint)Mathf.RoundToInt(density * 10f);
             }
         }
 

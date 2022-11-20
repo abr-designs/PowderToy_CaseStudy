@@ -414,6 +414,8 @@ namespace PowderToy
                             break;
                         case Particle.MATERIAL.LIQUID:
                             didUpdate = UpdateLiquidParticle(_particleSurroundings, ref particle);
+                            if (particle.HasDensity)
+                                LiquidParticleDensityCheck(_particleSurroundings);
                             break;
                         case Particle.MATERIAL.GAS:
                             didUpdate = UpdateGasParticle(_particleSurroundings, ref particle);
@@ -787,7 +789,9 @@ namespace PowderToy
         {
             //Check for things to burn
             //------------------------------------------------------------------//
-
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
             for (var i = 0; i < 8; i++)
             {
                 var index = particleSurroundings[i];
@@ -811,6 +815,69 @@ namespace PowderToy
 
                 _activeParticles[gridPos.ParticleIndex] = posParticle;
             }
+        }
+        
+        private void LiquidParticleDensityCheck(in int[] particleSurroundings)
+        {
+            //Compare densities, and swap if necessary
+            //------------------------------------------------------------------//
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            //TODO Determine if just checking the one below is enough
+
+            var currentIndex = particleSurroundings[4];
+            var belowIndex = particleSurroundings[7];
+
+            if (belowIndex < 0)
+                return;
+            
+            var currentGridPos = _gridPositions[currentIndex];
+            var belowGridPos = _gridPositions[belowIndex];
+            
+            if (belowGridPos.IsOccupied == false || currentGridPos.IsOccupied == false)
+                return;
+            
+            Particle currentParticle;
+            Particle belowParticle;
+            try
+            {
+                currentParticle = _activeParticles[currentGridPos.ParticleIndex];
+                belowParticle = _activeParticles[belowGridPos.ParticleIndex];
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+            //Make sure that both particles want to compare Density
+            if ((belowParticle.HasDensity && currentParticle.HasDensity) == false)
+                return;
+            
+            //If the one below already has a greater density
+            if (belowParticle.Density >= currentParticle.Density)
+                return;
+
+            //Otherwise we swap the two particles, and update the grid
+            currentGridPos.ParticleIndex = belowParticle.Index;
+            belowGridPos.ParticleIndex = currentParticle.Index;
+
+            _gridPositions[currentIndex] = currentGridPos;
+            _gridPositions[belowIndex] = belowGridPos;
+            
+            //and Update the particle Coordinates
+            var currentX = currentParticle.XCoord;
+            var currentY = currentParticle.YCoord;
+
+            currentParticle.XCoord = belowParticle.XCoord;
+            currentParticle.YCoord = belowParticle.YCoord;
+
+            belowParticle.XCoord = currentX;
+            belowParticle.YCoord = currentY;
+
+            _activeParticles[currentParticle.Index] = currentParticle;
+            _activeParticles[belowParticle.Index] = belowParticle;
         }
 
         //============================================================================================================//

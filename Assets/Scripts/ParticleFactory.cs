@@ -31,12 +31,14 @@ namespace PowderToy
                 particleType,
                 template.material,
                 template.GetRandomColor(),
+                template.hasDensity,
                 template.hasLifetime,
                 template.canBurn,
                 index,
                 xCoord,
                 yCoord)
             {
+                Density = template.GetDensity(),
                 Lifetime = template.GetRandomLifetime(),
                 ChanceToBurn = (uint)template.burnChance
             };
@@ -53,12 +55,14 @@ namespace PowderToy
                 Particle.TYPE.FIRE,
                 toConvert.Material,
                 fireTemplate.GetRandomColor(),
+                fromTemplate.hasDensity,
                 fireTemplate.hasLifetime,
                 false,
                 toConvert.Index,
                 toConvert.XCoord,
                 toConvert.YCoord)
             {
+                Density = fromTemplate.GetDensity(),
                 Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier),
                 ChanceToBurn = (uint)fireTemplate.burnChance
             };
