@@ -15,7 +15,7 @@ namespace PowderToy
         private ParticleDataScriptableObject particleDataScriptableObject;
 
 
-        public static Particle CreateParticle(in Particle.TYPE particleType, in int index, in int xCoord, in int yCoord)
+        public static void CreateParticle(ref Particle toSet, in Particle.TYPE particleType, in int index, in int xCoord, in int yCoord)
         {
             if (_isReady == false)
             {
@@ -27,7 +27,21 @@ namespace PowderToy
 
             var template = _templates[particleType];
 
-            return new Particle(
+            toSet.Type = particleType;
+            toSet.Material = template.material;
+            toSet.Color = template.GetRandomColor();
+            toSet.HasDensity = template.hasDensity;
+            toSet.HasLifeSpan = template.hasLifetime;
+            toSet.CanBurn = template.canBurn;
+            toSet.Index = index;
+            toSet.XCoord = xCoord;
+            toSet.YCoord = yCoord;
+            
+            toSet.Density = template.GetDensity();
+            toSet.Lifetime = template.GetRandomLifetime();
+            toSet.ChanceToBurn = (uint)template.burnChance;
+
+            /*return new Particle(
                 particleType,
                 template.material,
                 template.GetRandomColor(),
@@ -41,34 +55,26 @@ namespace PowderToy
                 Density = template.GetDensity(),
                 Lifetime = template.GetRandomLifetime(),
                 ChanceToBurn = (uint)template.burnChance
-            };
+            };*/
         }
         
         //============================================================================================================//
 
-        public static Particle ConvertToFire(in Particle toConvert)
+        public static void ConvertToFire(ref Particle toConvert)
         {
             var fireTemplate = _templates[Particle.TYPE.FIRE];
             var fromTemplate = _templates[toConvert.Type];
+
+            toConvert.Type = Particle.TYPE.FIRE;
+            toConvert.Color = fireTemplate.GetRandomColor();
+            toConvert.CanBurn = false;
             
-            return new Particle(
-                Particle.TYPE.FIRE,
-                toConvert.Material,
-                fireTemplate.GetRandomColor(),
-                fromTemplate.hasDensity,
-                fireTemplate.hasLifetime,
-                false,
-                toConvert.Index,
-                toConvert.XCoord,
-                toConvert.YCoord)
-            {
-                Density = fromTemplate.GetDensity(),
-                Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier),
-                ChanceToBurn = (uint)fireTemplate.burnChance
-            };
-            
+            toConvert.HasLifeSpan = fireTemplate.hasLifetime;
+            toConvert.Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier);
+            toConvert.ChanceToBurn = (uint)fireTemplate.burnChance;
         }
         
         //============================================================================================================//
+        
     }
 }

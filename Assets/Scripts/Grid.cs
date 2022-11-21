@@ -128,10 +128,15 @@ namespace PowderToy
         // Start is called before the first frame update
         private void Start()
         {
-            
             var count = size.x * size.y;
             _gridPositions = new GridPos[count];
+            //Fill default particle data
             _activeParticles = new Particle[count];
+            for (var i = 0; i < count; i++)
+            {
+                _activeParticles[i] = new Particle();
+            }
+            
 
             _sizeX = size.x;
             _sizeY = size.y;
@@ -245,9 +250,8 @@ namespace PowderToy
             var newIndex = _particleCount++;
             //var newColor = _particleRenderer.GetParticleColor(particleType);
             //var newParticle = new Particle(particleType, newColor, newIndex, newX, newY);
-            var newParticle = ParticleFactory.CreateParticle(particleType, newIndex, newX, newY);
-
-            _activeParticles[newIndex] = newParticle;
+            ref var newParticle = ref _activeParticles[newIndex];
+            ParticleFactory.CreateParticle(ref newParticle, particleType, newIndex, newX, newY);
 
             _gridPositions[GridHelper.CoordinateToIndex(newX, newY)] = new GridPos
             {
@@ -299,25 +303,26 @@ namespace PowderToy
             var gridIndex = GridHelper.CoordinateToIndex(x, y);
             var gridPos = _gridPositions[gridIndex];
 
-            var particle = _activeParticles[gridPos.ParticleIndex];
+            ref var particle = ref _activeParticles[gridPos.ParticleIndex];
             //We only want to queue deletion for things that move, solid things are safe to be deleted now.
             //This is because solid particles do not get updated the same way
             //FIXME once fire is added the above statement may need to change
             switch (particle.Material)
             {
+                case Particle.MATERIAL.NONE:
+                    break;
                 case Particle.MATERIAL.SOLID:
                 case Particle.MATERIAL.POWDER:
                 case Particle.MATERIAL.LIQUID:
                 case Particle.MATERIAL.GAS:
                     particle.KillNextTick = true;
-                    _activeParticles[gridPos.ParticleIndex] = particle;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
 
-            gridPos.IsOccupied = false;
-            _gridPositions[gridIndex] = gridPos;
+            //gridPos.IsOccupied = false;
+            _gridPositions[gridIndex] = GridPos.Empty;
             
             gridRequiresCleaning = true;
         }
@@ -330,7 +335,7 @@ namespace PowderToy
                 return;
 
             var gridIndex = GridHelper.CoordinateToIndex(x, y);
-            var gridPos = _gridPositions[gridIndex];
+            //var gridPos = _gridPositions[gridIndex];
 
             //var particle = _activeParticles[gridPos.ParticleIndex];
             //We only want to queue deletion for things that move, solid things are safe to be deleted now.
@@ -343,14 +348,12 @@ namespace PowderToy
                 case Particle.MATERIAL.LIQUID:
                 case Particle.MATERIAL.GAS:
                     particle.KillNextTick = true;
-                    _activeParticles[gridPos.ParticleIndex] = particle;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
 
-            gridPos.IsOccupied = false;
-            _gridPositions[gridIndex] = gridPos;
+            _gridPositions[gridIndex] = GridPos.Empty;
             
             gridRequiresCleaning = true;
         }
@@ -365,9 +368,9 @@ namespace PowderToy
             }
         }
 
-        private void KillParticle(in Particle particle)
+        private void KillParticle(ref Particle particle)
         {
-            _activeParticles[particle.Index] = Particle.Empty;
+            particle.CopyFrom(Particle.Empty);
             _particleCount--;
         }
 
@@ -381,62 +384,59 @@ namespace PowderToy
                 var count = _particleRowContainers[i].ParticleCount;
                 for (var ii = 0; ii < count; ii++)
                 {
-                    var particle = _activeParticles[(int)container[ii]];
+                    ref var particle = ref _activeParticles[(int)container[ii]];
 
                     //Check for napping particles OR ones that were marked as empty
                     if(particle.Asleep || particle.Type == Particle.TYPE.NONE)
                         continue;
-                   
-                    if (particle.HasLifeSpan && particle.Lifetime <= 0)
-                        MarkParticleForDeath(ref particle);
                     
                     if (particle.KillNextTick)
                     {
-                        KillParticle(particle);
+                        KillParticle(ref particle);
                         continue;
                     }
-                    bool didUpdate;
-
+                    
                     GridHelper.GetParticleSurroundings(particle.XCoord, particle.YCoord, ref _particleSurroundings);
-
-                    if (particle.Type == Particle.TYPE.FIRE)
-                        FireParticleBurnCheck(_particleSurroundings);
 
                     switch (particle.Material)
                     {
                         case Particle.MATERIAL.SOLID when particle.Type == Particle.TYPE.FIRE:
-                            didUpdate = true;
                             break;
                         case Particle.MATERIAL.SOLID:
                             continue;
                         case Particle.MATERIAL.POWDER:
-                            didUpdate = UpdatePowderParticle(_particleSurroundings, ref particle);
+                            UpdatePowderParticle(_particleSurroundings, ref particle);
                             break;
                         case Particle.MATERIAL.LIQUID:
-                            didUpdate = UpdateLiquidParticle(_particleSurroundings, ref particle);
+                            UpdateLiquidParticle(_particleSurroundings, ref particle);
                             break;
                         case Particle.MATERIAL.GAS:
-                            didUpdate = UpdateGasParticle(_particleSurroundings, ref particle);
+                            UpdateGasParticle(_particleSurroundings, ref particle);
                             break;
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-
+                    
                     if (particle.HasLifeSpan)
                     {
-                        particle.Lifetime--;
-                        didUpdate = true;
-                    }
-
-                    if (didUpdate)
-                    {
-                        _activeParticles[particle.Index] = particle;
-                        continue;
+                        if (particle.Lifetime-- <= 0)
+                        {
+                            var gridIndex = GridHelper.CoordinateToIndex(particle);
+                            
+                            particle.CopyFrom(Particle.Empty);
+                            _gridPositions[gridIndex] = GridPos.Empty;
+                            gridRequiresCleaning = true;
+                            _particleCount--;
+                            
+                            continue;
+                        }
                     }
                     
+                    if (particle.Type == Particle.TYPE.FIRE)
+                        FireParticleBurnCheck(_particleSurroundings);
                     
-                    if(allowSleeping && particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
-                        particle.Asleep = true;
+                    /*if(allowSleeping && particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
+                        particle.Asleep = true;*/
                 }
                 
                 _particleRowContainers[i].Clear();
@@ -471,13 +471,17 @@ namespace PowderToy
                 var newIndex = i - indexOffset;
 
                 var gridPosIndex = GridHelper.CoordinateToIndex(particle);
+
+                //Update particle index in grid positions
                 var gridPos = _gridPositions[gridPosIndex];
                 gridPos.ParticleIndex = newIndex;
                 _gridPositions[gridPosIndex] = gridPos;
 
-                particle.Index = newIndex;
-                _activeParticles[newIndex] = particle;
-                _activeParticles[i] = Particle.Empty;
+                //particle.Index = newIndex;
+                _activeParticles[newIndex].CopyFrom(particle);
+                _activeParticles[newIndex].Index = newIndex;
+                
+                _activeParticles[i].CopyFrom(Particle.Empty);
             }
 
             gridRequiresCleaning = false;
@@ -584,17 +588,17 @@ namespace PowderToy
 
         //============================================================================================================//
 
-        private bool UpdatePowderParticle(in int[] particleSurroundings, ref Particle particle)
+        private void UpdatePowderParticle(in int[] particleSurroundings, ref Particle particle)
         {
             //var originalCoordinate = particle.Coordinate;
             var originalX = particle.XCoord;
             var originalY = particle.YCoord;
 
             if (particle.Asleep)
-                return false;
+                return;
 
             //------------------------------------------------------------------//
-            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            //[MethodImpl(MethodImplOptions.AggressiveInlining)]
             bool TrySetNewPosition(
                 in int newX,
                 in int newY,
@@ -612,19 +616,18 @@ namespace PowderToy
                 
                 var spaceOccupied = _gridLocationDetails.IsOccupied;
                 var occupierIndex = _gridLocationDetails.OccupierIndex;
-
-                Particle occupier = default;
+                ref var occupier = ref _activeParticles[occupierIndex];
+                
 
                 if (spaceOccupied)
                 {
-                    occupier = _activeParticles[occupierIndex];
-
                     if (occupier.Type != Particle.TYPE.WATER)
                         return false;
                 }
-
+                
                 myParticle.XCoord = newX;
                 myParticle.YCoord = newY;
+
 
                 //Test for water
                 //------------------------------------------------------------------//
@@ -639,7 +642,7 @@ namespace PowderToy
                         IsOccupied = true,
                         ParticleIndex = (int)occupierIndex
                     };
-                    _activeParticles[occupierIndex] = occupier;
+                    //_activeParticles[occupierIndex] = occupier;
                 }
                 else
                     _gridPositions[currentGridIndex] = GridPos.Empty;
@@ -651,7 +654,7 @@ namespace PowderToy
                     IsOccupied = true,
                     ParticleIndex = myParticle.Index
                 };
-                _activeParticles[myParticle.Index] = myParticle;
+                
                 return true;
             }
 
@@ -661,19 +664,17 @@ namespace PowderToy
             //[6 7 8]
             var currentGridIndex = particleSurroundings[4];
             if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], currentGridIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], currentGridIndex,
                     ref particle))
-                return true;
+                return;
             if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], currentGridIndex,
                     ref particle))
-                return true;
-
-            return false;
+                return;
         }
 
         //TODO Need to implement a position resolving function when the liquid particle needs to move
-        private bool UpdateLiquidParticle(in int[] particleSurroundings, ref Particle particle)
+        private void UpdateLiquidParticle(in int[] particleSurroundings, ref Particle particle)
         {
             //var coordinate = particle.Coordinate;
             var originalX = particle.XCoord;
@@ -738,20 +739,18 @@ namespace PowderToy
             //[6 7 8]
             var originalIndex = particleSurroundings[4];
             if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex, ref particle))
-                return true;
-
-            return false;
+                return;
         }
 
-        private bool UpdateGasParticle(in int[] particleSurroundings, ref Particle particle)
+        private void UpdateGasParticle(in int[] particleSurroundings, ref Particle particle)
         {
             //var coordinate = particle.Coordinate;
             var originalX = particle.XCoord;
@@ -792,17 +791,15 @@ namespace PowderToy
             //[6 7 8]
             var originalIndex = particleSurroundings[4];
             if (particleSurroundings[1] >= 0 && TrySetNewPosition(originalX, originalY + 1, particleSurroundings[1], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[0] >= 0 && TrySetNewPosition(originalX - 1, originalY + 1, particleSurroundings[0], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[2] >= 0 && TrySetNewPosition(originalX + 1, originalY + 1, particleSurroundings[2], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, ref particle))
-                return true;
+                return;
             if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex, ref particle))
-                return true;
-
-            return false;
+                return;
         }
 
         //============================================================================================================//
@@ -824,7 +821,7 @@ namespace PowderToy
                 if (gridPos.IsOccupied == false)
                     continue;
 
-                var posParticle = _activeParticles[gridPos.ParticleIndex];
+                ref var posParticle = ref _activeParticles[gridPos.ParticleIndex];
 
                 if (posParticle.CanBurn == false)
                     continue;
@@ -833,9 +830,7 @@ namespace PowderToy
                 if (Random.Range(0, 100) > posParticle.ChanceToBurn)
                     continue;
 
-                posParticle = ParticleFactory.ConvertToFire(posParticle);
-
-                _activeParticles[gridPos.ParticleIndex] = posParticle;
+                ParticleFactory.ConvertToFire(ref posParticle);
             }
         }
 
@@ -872,9 +867,7 @@ namespace PowderToy
             SwapParticlePositions(fromGridIndex, toGridIndex,
                 ref fromGridPos, ref toGridPos,
                 ref fromParticle, ref toParticle);
-
-            _activeParticles[fromParticle.Index] = fromParticle;
-            _activeParticles[toParticle.Index] = toParticle;
+            
             return true;
         }
 
@@ -934,6 +927,24 @@ namespace PowderToy
         }
 
         //============================================================================================================//
+
+#if UNITY_EDITOR
+
+        public (bool legal, bool occupied, int gridIndex, GridPos gridPos, Particle particle) GetParticleAtCoordinate(in int xCoord, in int yCoord)
+        {
+            if (GridHelper.IsLegalCoordinate(xCoord, yCoord) == false)
+                return (false, default, default, default, default);
+            
+            var gridIndex = GridHelper.CoordinateToIndex(xCoord, yCoord);
+            var gridPos = _gridPositions[gridIndex];
+            
+            if(gridPos.IsOccupied == false)
+                return (true, false, gridIndex, gridPos, null);
+
+            return (true, true, gridIndex, gridPos, _activeParticles[gridPos.ParticleIndex]);
+        }
+        
+#endif
         
     }
 
