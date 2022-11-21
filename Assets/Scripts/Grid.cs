@@ -806,12 +806,35 @@ namespace PowderToy
 
         private void FireParticleBurnCheck(in int[] particleSurroundings)
         {
+            var hasAir = false;
+            //Check if there is an empty space near the fire
+            //------------------------------------------------//
+            //This is to slow the spread of fire, forcing it to work outside in
+            for (var i = 0; i < 8; i++)
+            {
+                var index = particleSurroundings[i];
+                if (index < 0)
+                    continue;
+
+                var gridPos = _gridPositions[index];
+                if (gridPos.IsOccupied)
+                    continue;
+
+                hasAir = true;
+
+            }
+
+            //If there is not nearby air tile, then we can't pass on fire
+            if (hasAir == false)
+                return;
+            
             //Check for things to burn
             //------------------------------------------------------------------//
             //[0 1 2]
             //[3 x 5]
             //[6 7 8]
-            for (var i = 0; i < 8; i++)
+            //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
+            for (var i = 1; i < 8; i+=2)
             {
                 var index = particleSurroundings[i];
                 if (index < 0)
