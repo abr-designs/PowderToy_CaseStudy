@@ -689,32 +689,55 @@ namespace PowderToy
                 in int currentGridIndex,
                 ref Particle myParticle)
             {
+                IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
+                
+                if (_gridLocationDetails.IsLegal == false)
+                    return false;
+
+                Particle occupyingParticle = null;
+                var occupied = _gridLocationDetails.IsOccupied;
+                if (occupied)
+                    occupyingParticle = _activeParticles[_gridLocationDetails.OccupierIndex];
+                
+                //FIXME I feel like this needs to be somewhere else...
+                //Water extinguishes fire.
+                //------------------------------------------------//
+                
+                //Putting out fire overrides the need to check density
+                if (occupied && 
+                    myParticle.Type == Particle.TYPE.WATER && 
+                    occupyingParticle.Type == Particle.TYPE.FIRE)
+                {
+                    ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref occupyingParticle);
+                    MarkParticleForDeath(ref myParticle);
+                    return true;
+                }
+
+                //Check material densities
+                //------------------------------------------------//
+                
                 if (myParticle.HasDensity)
                 {
-                    IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
-
-                    if (_gridLocationDetails.IsLegal == false)
-                        return false;
-
-                    if (_gridLocationDetails.IsOccupied)
+                    if (occupied)
                     {
-                        var occupierParticle = _activeParticles[_gridLocationDetails.OccupierIndex];
-
-                        if (occupierParticle.Material == Particle.MATERIAL.LIQUID &&
-                             occupierParticle.Type != myParticle.Type &&
-                             occupierParticle.HasDensity)
+                        if (occupyingParticle.Material == Particle.MATERIAL.LIQUID &&
+                            occupyingParticle.Type != myParticle.Type &&
+                            occupyingParticle.HasDensity)
                         {
                             var didSwap = LiquidParticleDensityCheck(
                                 currentGridIndex, 
                                 newGridIndex, 
                                 ref myParticle,
-                                ref occupierParticle);
+                                ref occupyingParticle);
 
                             if (didSwap)
                                 return true;
                         }
                     }
                 }
+
+                //------------------------------------------------//
+                
                 //If the particle doesn't care about density, don't go through the expensive dance above
                 if (IsIndexOccupied(newGridIndex))
                     return false;
@@ -857,6 +880,7 @@ namespace PowderToy
             }
         }
 
+        //TODO This might have to be generalized for Gases & Liquids
         private bool LiquidParticleDensityCheck(
             in int fromGridIndex, 
             in int toGridIndex, 
@@ -894,38 +918,6 @@ namespace PowderToy
             return true;
         }
 
-        /*private void SwapParticlePositions(in int fromGridIndex, in int toGridIndex, in bool updateParticles = true)
-        {
-            var currentGridPos = _gridPositions[fromGridIndex];
-            var newGridPos = _gridPositions[toGridIndex];
-            
-            var currentParticle = _activeParticles[currentGridPos.ParticleIndex];
-            var belowParticle = _activeParticles[newGridPos.ParticleIndex];
-            
-            //Otherwise we swap the two particles, and update the grid
-            currentGridPos.ParticleIndex = belowParticle.Index;
-            newGridPos.ParticleIndex = currentParticle.Index;
-
-            _gridPositions[fromGridIndex] = currentGridPos;
-            _gridPositions[toGridIndex] = newGridPos;
-            
-            //and Update the particle Coordinates
-            var currentX = currentParticle.XCoord;
-            var currentY = currentParticle.YCoord;
-
-            currentParticle.XCoord = belowParticle.XCoord;
-            currentParticle.YCoord = belowParticle.YCoord;
-
-            belowParticle.XCoord = currentX;
-            belowParticle.YCoord = currentY;
-
-            if (updateParticles == false)
-                return;
-
-            _activeParticles[currentParticle.Index] = currentParticle;
-            _activeParticles[belowParticle.Index] = belowParticle;
-        }*/
-        
         private void SwapParticlePositions(in int fromGridIndex, in int toGridIndex,
             ref GridPos fromGridPos, ref GridPos toGridPos,
             ref Particle fromParticle, ref Particle toParticle)
@@ -949,6 +941,7 @@ namespace PowderToy
 
         }
 
+        //Unity Editor Functions
         //============================================================================================================//
 
 #if UNITY_EDITOR
@@ -968,6 +961,7 @@ namespace PowderToy
         }
         
 #endif
+        //============================================================================================================//
         
     }
 

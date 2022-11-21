@@ -59,6 +59,21 @@ namespace PowderToy
         }
         
         //============================================================================================================//
+        
+        public static void ConvertTo(in Particle.TYPE toParticleType, ref Particle particleToConvert)
+        {
+            var newTemplate = _templates[toParticleType];
+
+            particleToConvert.Type = toParticleType;
+            particleToConvert.Material = newTemplate.material;
+            particleToConvert.Color = newTemplate.GetRandomColor();
+            particleToConvert.HasDensity = newTemplate.hasDensity;
+            particleToConvert.HasLifeSpan = newTemplate.hasLifetime;
+            particleToConvert.CanBurn = newTemplate.canBurn;
+            particleToConvert.Density = newTemplate.GetDensity();
+            particleToConvert.Lifetime = newTemplate.GetRandomLifetime();
+            particleToConvert.ChanceToBurn = (uint)newTemplate.burnChance;
+        }
 
         public static void ConvertToFire(ref Particle toConvert)
         {
