@@ -312,6 +312,8 @@ namespace PowderToy
                 case Particle.MATERIAL.NONE:
                     break;
                 case Particle.MATERIAL.SOLID:
+                    KillParticle(ref particle);
+                    break;
                 case Particle.MATERIAL.POWDER:
                 case Particle.MATERIAL.LIQUID:
                 case Particle.MATERIAL.GAS:
@@ -373,6 +375,16 @@ namespace PowderToy
             particle.CopyFrom(Particle.Empty);
             _particleCount--;
         }
+        
+        private void KillParticleImmediate(ref Particle particle)
+        {
+            var gridIndex = GridHelper.CoordinateToIndex(particle);
+                            
+            particle.CopyFrom(Particle.Empty);
+            _gridPositions[gridIndex] = GridPos.Empty;
+            gridRequiresCleaning = true;
+            _particleCount--;
+        }
 
         //==================================================================================//
 
@@ -421,13 +433,7 @@ namespace PowderToy
                     {
                         if (particle.Lifetime-- <= 0)
                         {
-                            var gridIndex = GridHelper.CoordinateToIndex(particle);
-                            
-                            particle.CopyFrom(Particle.Empty);
-                            _gridPositions[gridIndex] = GridPos.Empty;
-                            gridRequiresCleaning = true;
-                            _particleCount--;
-                            
+                            KillParticleImmediate(ref particle);
                             continue;
                         }
                     }
@@ -708,8 +714,9 @@ namespace PowderToy
                     myParticle.Type == Particle.TYPE.WATER && 
                     occupyingParticle.Type == Particle.TYPE.FIRE)
                 {
-                    ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref occupyingParticle);
-                    MarkParticleForDeath(ref myParticle);
+                    ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref myParticle);
+                    //MarkParticleForDeath(ref occupyingParticle);
+                    KillParticleImmediate(ref occupyingParticle);
                     return true;
                 }
 
