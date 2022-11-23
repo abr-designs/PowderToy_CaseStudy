@@ -11,6 +11,7 @@ namespace PowderToy.ScriptableObjects
     [CreateAssetMenu(fileName = "ParticleData", menuName = "ScriptableObjects/Particle Data")]
     public class ParticleDataScriptableObject : ScriptableObject
     {
+        //Common Densities: https://www.efunda.com/Materials/common_matl/common_matl.cfm?MatlPhase=Liquid&MatlProp=Physical
         [Serializable]
         public struct ParticleData
         {

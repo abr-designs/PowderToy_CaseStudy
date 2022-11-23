@@ -723,25 +723,9 @@ namespace PowderToy
                 //Check material densities
                 //------------------------------------------------//
                 
-                if (myParticle.HasDensity)
-                {
-                    if (occupied)
-                    {
-                        if (occupyingParticle.Material == Particle.MATERIAL.LIQUID &&
-                            occupyingParticle.Type != myParticle.Type &&
-                            occupyingParticle.HasDensity)
-                        {
-                            var didSwap = LiquidParticleDensityCheck(
-                                currentGridIndex, 
-                                newGridIndex, 
-                                ref myParticle,
-                                ref occupyingParticle);
-
-                            if (didSwap)
-                                return true;
-                        }
-                    }
-                }
+                if (CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
+                        ref occupyingParticle))
+                    return true;
 
                 //------------------------------------------------//
                 
@@ -797,6 +781,24 @@ namespace PowderToy
             {
                 /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
                     return false;*/
+                IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
+                
+                if (_gridLocationDetails.IsLegal == false)
+                    return false;
+
+                Particle occupyingParticle = null;
+                var occupied = _gridLocationDetails.IsOccupied;
+                if (occupied)
+                    occupyingParticle = _activeParticles[_gridLocationDetails.OccupierIndex];
+                
+                //Check material densities
+                //------------------------------------------------//
+
+                if (CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
+                        ref occupyingParticle))
+                    return true;
+                
+                //------------------------------------------------//
                 //IF the space is occupied, leave early
                 if (IsIndexOccupied(newGridIndex))
                     return false;
@@ -887,8 +889,34 @@ namespace PowderToy
             }
         }
 
+        private bool CheckDidSwapParticleDensity(in bool occupied, 
+            in int currentGridIndex, in int newGridIndex,
+            ref Particle selectedParticle, ref Particle occupyingParticle)
+        {
+            //Check material densities
+            //------------------------------------------------//
+
+            if (selectedParticle.HasDensity == false)
+                return false;
+            if (occupied == false)
+                return false;
+
+            if (occupyingParticle.HasDensity == false || occupyingParticle.Type == selectedParticle.Type)
+                return false;
+                    
+            var didSwap = ParticleDensityCheck(
+                currentGridIndex,
+                newGridIndex,
+                ref selectedParticle,
+                ref occupyingParticle);
+
+            return didSwap;
+
+            //------------------------------------------------//
+        }
+
         //TODO This might have to be generalized for Gases & Liquids
-        private bool LiquidParticleDensityCheck(
+        private bool ParticleDensityCheck(
             in int fromGridIndex, 
             in int toGridIndex, 
             ref Particle fromParticle,
