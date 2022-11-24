@@ -499,7 +499,7 @@ namespace PowderToy
 
             for (var i = 0; i < _particleCount; i++)
             {
-                var particle = _activeParticles[i];
+                ref var particle = ref _activeParticles[i];
                 
                 //We can't move nothing
                 if(particle.Type == Particle.TYPE.NONE)
@@ -511,6 +511,8 @@ namespace PowderToy
                 if(particle.Asleep)
                     continue;
 
+                particle.IsSwapLocked = false;
+                
                 try
                 {
                     _particleRowContainers[particle.YCoord].AddParticle(particle.Index);
@@ -612,6 +614,8 @@ namespace PowderToy
                 in int currentGridIndex,
                 ref Particle myParticle)
             {
+                if (myParticle.IsSwapLocked)
+                    return false;
                 /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
                     return false;*/
                 //IF the space is occupied, leave early
@@ -624,10 +628,13 @@ namespace PowderToy
                 var occupierIndex = _gridLocationDetails.OccupierIndex;
                 ref var occupier = ref _activeParticles[occupierIndex];
                 
+                if (occupier.IsSwapLocked)
+                    return false;
 
-                if (spaceOccupied)
+                //If the checked particle is a solid, we cannot move there no swap
+                if (spaceOccupied && (occupier.Material == Particle.MATERIAL.POWDER ||
+                                      occupier.Material == Particle.MATERIAL.SOLID))
                 {
-                    if (occupier.Type != Particle.TYPE.WATER)
                         return false;
                 }
                 
@@ -635,11 +642,12 @@ namespace PowderToy
                 myParticle.YCoord = newY;
 
 
-                //Test for water
+                //Test for non-solid
                 //------------------------------------------------------------------//
                 //FIXME I need a new behaviour for this
-                if (occupier.Type == Particle.TYPE.WATER)
+                if (occupier.Type != Particle.TYPE.NONE)
                 {
+                    //FIXME Need to implement position swap
                     //occupier.Coordinate = originalCoordinate;
                     occupier.XCoord = originalX;
                     occupier.YCoord = originalY;
@@ -648,6 +656,9 @@ namespace PowderToy
                         IsOccupied = true,
                         ParticleIndex = (int)occupierIndex
                     };
+
+                    occupier.IsSwapLocked = true;
+                    myParticle.IsSwapLocked = true;
                     //_activeParticles[occupierIndex] = occupier;
                 }
                 else
@@ -693,6 +704,7 @@ namespace PowderToy
                 in int newY,
                 in int newGridIndex,
                 in int currentGridIndex,
+                in bool checkDensity,
                 ref Particle myParticle)
             {
                 IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
@@ -723,7 +735,7 @@ namespace PowderToy
                 //Check material densities
                 //------------------------------------------------//
                 
-                if (CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
+                if (checkDensity && CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
                         ref occupyingParticle))
                     return true;
 
@@ -751,16 +763,17 @@ namespace PowderToy
             //[0 1 2]
             //[3 x 5]
             //[6 7 8]
+            //Currently Density checks only occur on the absolute target direction, DOWN[7]
             var originalIndex = particleSurroundings[4];
-            if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], originalIndex, ref particle))
+            if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], originalIndex, true, ref particle))
                 return;
-            if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], originalIndex, ref particle))
+            if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], originalIndex, false, ref particle))
                 return;
-            if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], originalIndex, ref particle))
+            if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], originalIndex, false, ref particle))
                 return;
-            if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, ref particle))
+            if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex,false, ref particle))
                 return;
-            if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex, ref particle))
+            if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex,false, ref particle))
                 return;
         }
 
@@ -777,6 +790,7 @@ namespace PowderToy
                 in int newY,
                 in int newGridIndex,
                 in int currentGridIndex,
+                in bool checkDensity,
                 ref Particle myParticle)
             {
                 /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
@@ -794,7 +808,7 @@ namespace PowderToy
                 //Check material densities
                 //------------------------------------------------//
 
-                if (CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
+                if (checkDensity && CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
                         ref occupyingParticle))
                     return true;
                 
@@ -821,16 +835,17 @@ namespace PowderToy
             //[0 1 2]
             //[3 x 5]
             //[6 7 8]
+            //Currently Density checks only occur on the absolute target direction, UP[1]
             var originalIndex = particleSurroundings[4];
-            if (particleSurroundings[1] >= 0 && TrySetNewPosition(originalX, originalY + 1, particleSurroundings[1], originalIndex, ref particle))
+            if (particleSurroundings[1] >= 0 && TrySetNewPosition(originalX, originalY + 1, particleSurroundings[1], originalIndex, true, ref particle))
                 return;
-            if (particleSurroundings[0] >= 0 && TrySetNewPosition(originalX - 1, originalY + 1, particleSurroundings[0], originalIndex, ref particle))
+            if (particleSurroundings[0] >= 0 && TrySetNewPosition(originalX - 1, originalY + 1, particleSurroundings[0], originalIndex, false, ref particle))
                 return;
-            if (particleSurroundings[2] >= 0 && TrySetNewPosition(originalX + 1, originalY + 1, particleSurroundings[2], originalIndex, ref particle))
+            if (particleSurroundings[2] >= 0 && TrySetNewPosition(originalX + 1, originalY + 1, particleSurroundings[2], originalIndex, false, ref particle))
                 return;
-            if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, ref particle))
+            if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, false, ref particle))
                 return;
-            if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex, ref particle))
+            if (particleSurroundings[5] >= 0 && TrySetNewPosition(originalX + 1, originalY, particleSurroundings[5], originalIndex, false, ref particle))
                 return;
         }
 
@@ -895,12 +910,12 @@ namespace PowderToy
         {
             //Check material densities
             //------------------------------------------------//
-
-            if (selectedParticle.HasDensity == false)
-                return false;
             if (occupied == false)
                 return false;
-
+            if (selectedParticle.IsSwapLocked || occupyingParticle.IsSwapLocked)
+                return false;
+            if (selectedParticle.HasDensity == false)
+                return false;
             if (occupyingParticle.HasDensity == false || occupyingParticle.Type == selectedParticle.Type)
                 return false;
                     
@@ -949,6 +964,9 @@ namespace PowderToy
             SwapParticlePositions(fromGridIndex, toGridIndex,
                 ref fromGridPos, ref toGridPos,
                 ref fromParticle, ref toParticle);
+
+            fromParticle.IsSwapLocked = true;
+            toParticle.IsSwapLocked = true;
             
             return true;
         }

@@ -165,8 +165,8 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 3
       m_NumAlphaKeys: 2
-    hasDensity: 0
-    density: 0
+    hasDensity: 1
+    density: 0.58
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0
@@ -246,7 +246,7 @@ MonoBehaviour:
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
     hasDensity: 1
-    density: 0.5
+    density: 0.82
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0

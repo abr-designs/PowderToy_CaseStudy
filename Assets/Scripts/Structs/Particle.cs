@@ -49,6 +49,11 @@ namespace PowderToy
         public bool CanBurn;
         public uint ChanceToBurn;
 
+        /// <summary>
+        /// This value is used when two particles swap positions, and that counts as both of their updates for that tick
+        /// </summary>
+        public bool IsSwapLocked;
+
         /*public Particle(
             in TYPE type, 
             in MATERIAL material, 
