@@ -279,7 +279,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   usePressAndHold: 1
-  selectedParticleType: 5
+  selectedParticleType: 1
 --- !u!114 &1189435742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -760,10 +760,10 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0
-    y: 0
-    width: 1
-    height: 1
+    x: 0.01183432
+    y: 0.01183432
+    width: 0.97633135
+    height: 0.97633135
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60

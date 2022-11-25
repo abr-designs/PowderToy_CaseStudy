@@ -602,6 +602,92 @@ namespace PowderToy
             var originalX = particle.XCoord;
             var originalY = particle.YCoord;
 
+            //------------------------------------------------------------------//
+            bool TrySetNewPosition(
+                in int newX,
+                in int newY,
+                in int newGridIndex,
+                in int currentGridIndex,
+                ref Particle myParticle)
+            {
+                //IF the space is occupied, leave early
+                IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
+
+                if (_gridLocationDetails.IsLegal == false)
+                    return false;
+                
+                var spaceOccupied = _gridLocationDetails.IsOccupied;
+                var occupierIndex = _gridLocationDetails.OccupierIndex;
+                ref var occupier = ref _activeParticles[occupierIndex];
+                
+
+                if (spaceOccupied)
+                {
+                    if (occupier.Material == Particle.MATERIAL.SOLID || occupier.Material == Particle.MATERIAL.POWDER)
+                        return false;
+                    
+                    SwapParticlePositions(currentGridIndex, newGridIndex,
+                        ref myParticle, ref occupier);
+
+                    myParticle.IsSwapLocked = true;
+                    occupier.IsSwapLocked = true;
+                        
+                    return true;
+                }
+                
+                myParticle.XCoord = newX;
+                myParticle.YCoord = newY;
+
+
+                //Test for water
+                //------------------------------------------------------------------//
+                /*//FIXME I need a new behaviour for this
+                if (occupier.Type == Particle.TYPE.WATER)
+                {
+                    //occupier.Coordinate = originalCoordinate;
+                    occupier.XCoord = originalX;
+                    occupier.YCoord = originalY;
+                    _gridPositions[currentGridIndex] = new GridPos
+                    {
+                        IsOccupied = true,
+                        ParticleIndex = (int)occupierIndex
+                    };
+                    //_activeParticles[occupierIndex] = occupier;
+                }
+                else*/
+                _gridPositions[currentGridIndex] = GridPos.Empty;
+                //------------------------------------------------------------------//
+
+
+                _gridPositions[newGridIndex] = new GridPos
+                {
+                    IsOccupied = true,
+                    ParticleIndex = myParticle.Index
+                };
+                
+                return true;
+            }
+
+            //------------------------------------------------------------------//
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            var currentGridIndex = particleSurroundings[4];
+            if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], currentGridIndex, ref particle))
+                return;
+            if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], currentGridIndex,
+                    ref particle))
+                return;
+            if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], currentGridIndex,
+                    ref particle))
+                return;
+        }
+        /*private void UpdatePowderParticle(in int[] particleSurroundings, ref Particle particle)
+        {
+            //var originalCoordinate = particle.Coordinate;
+            var originalX = particle.XCoord;
+            var originalY = particle.YCoord;
+
             if (particle.Asleep)
                 return;
 
@@ -614,10 +700,8 @@ namespace PowderToy
                 in int currentGridIndex,
                 ref Particle myParticle)
             {
-                if (myParticle.IsSwapLocked)
-                    return false;
                 /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
-                    return false;*/
+                    return false;#1#
                 //IF the space is occupied, leave early
                 IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
 
@@ -628,13 +712,10 @@ namespace PowderToy
                 var occupierIndex = _gridLocationDetails.OccupierIndex;
                 ref var occupier = ref _activeParticles[occupierIndex];
                 
-                if (occupier.IsSwapLocked)
-                    return false;
 
-                //If the checked particle is a solid, we cannot move there no swap
-                if (spaceOccupied && (occupier.Material == Particle.MATERIAL.POWDER ||
-                                      occupier.Material == Particle.MATERIAL.SOLID))
+                if (spaceOccupied)
                 {
+                    if (occupier.Type != Particle.TYPE.WATER)
                         return false;
                 }
                 
@@ -642,12 +723,11 @@ namespace PowderToy
                 myParticle.YCoord = newY;
 
 
-                //Test for non-solid
+                //Test for water
                 //------------------------------------------------------------------//
                 //FIXME I need a new behaviour for this
-                if (occupier.Type != Particle.TYPE.NONE)
+                if (occupier.Type == Particle.TYPE.WATER)
                 {
-                    //FIXME Need to implement position swap
                     //occupier.Coordinate = originalCoordinate;
                     occupier.XCoord = originalX;
                     occupier.YCoord = originalY;
@@ -656,9 +736,6 @@ namespace PowderToy
                         IsOccupied = true,
                         ParticleIndex = (int)occupierIndex
                     };
-
-                    occupier.IsSwapLocked = true;
-                    myParticle.IsSwapLocked = true;
                     //_activeParticles[occupierIndex] = occupier;
                 }
                 else
@@ -688,7 +765,7 @@ namespace PowderToy
             if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], currentGridIndex,
                     ref particle))
                 return;
-        }
+        }*/
 
         //TODO Need to implement a position resolving function when the liquid particle needs to move
         private void UpdateLiquidParticle(in int[] particleSurroundings, ref Particle particle)
@@ -704,7 +781,7 @@ namespace PowderToy
                 in int newY,
                 in int newGridIndex,
                 in int currentGridIndex,
-                in bool checkDensity,
+                in bool useSwapLock,
                 ref Particle myParticle)
             {
                 IsIndexOccupiedDetailed(newGridIndex, ref _gridLocationDetails);
@@ -735,7 +812,7 @@ namespace PowderToy
                 //Check material densities
                 //------------------------------------------------//
                 
-                if (checkDensity && CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
+                if (CheckDidSwapParticleDensity(useSwapLock, occupied, currentGridIndex, newGridIndex, ref myParticle,
                         ref occupyingParticle))
                     return true;
 
@@ -767,9 +844,9 @@ namespace PowderToy
             var originalIndex = particleSurroundings[4];
             if (particleSurroundings[7] >= 0 && TrySetNewPosition(originalX, originalY - 1, particleSurroundings[7], originalIndex, true, ref particle))
                 return;
-            if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], originalIndex, false, ref particle))
+            if (particleSurroundings[6] >= 0 && TrySetNewPosition(originalX - 1, originalY - 1, particleSurroundings[6], originalIndex, true, ref particle))
                 return;
-            if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], originalIndex, false, ref particle))
+            if (particleSurroundings[8] >= 0 && TrySetNewPosition(originalX + 1, originalY - 1, particleSurroundings[8], originalIndex, true, ref particle))
                 return;
             if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex,false, ref particle))
                 return;
@@ -790,7 +867,7 @@ namespace PowderToy
                 in int newY,
                 in int newGridIndex,
                 in int currentGridIndex,
-                in bool checkDensity,
+                in bool useSwapLock,
                 ref Particle myParticle)
             {
                 /*if (GridHelper.IsLegalIndex(newGridIndex) == false)
@@ -808,7 +885,7 @@ namespace PowderToy
                 //Check material densities
                 //------------------------------------------------//
 
-                if (checkDensity && CheckDidSwapParticleDensity(occupied, currentGridIndex, newGridIndex, ref myParticle,
+                if (CheckDidSwapParticleDensity(useSwapLock, occupied, currentGridIndex, newGridIndex, ref myParticle,
                         ref occupyingParticle))
                     return true;
                 
@@ -839,9 +916,9 @@ namespace PowderToy
             var originalIndex = particleSurroundings[4];
             if (particleSurroundings[1] >= 0 && TrySetNewPosition(originalX, originalY + 1, particleSurroundings[1], originalIndex, true, ref particle))
                 return;
-            if (particleSurroundings[0] >= 0 && TrySetNewPosition(originalX - 1, originalY + 1, particleSurroundings[0], originalIndex, false, ref particle))
+            if (particleSurroundings[0] >= 0 && TrySetNewPosition(originalX - 1, originalY + 1, particleSurroundings[0], originalIndex, true, ref particle))
                 return;
-            if (particleSurroundings[2] >= 0 && TrySetNewPosition(originalX + 1, originalY + 1, particleSurroundings[2], originalIndex, false, ref particle))
+            if (particleSurroundings[2] >= 0 && TrySetNewPosition(originalX + 1, originalY + 1, particleSurroundings[2], originalIndex, true, ref particle))
                 return;
             if (particleSurroundings[3] >= 0 && TrySetNewPosition(originalX - 1, originalY, particleSurroundings[3], originalIndex, false, ref particle))
                 return;
@@ -904,9 +981,13 @@ namespace PowderToy
             }
         }
 
-        private bool CheckDidSwapParticleDensity(in bool occupied, 
-            in int currentGridIndex, in int newGridIndex,
-            ref Particle selectedParticle, ref Particle occupyingParticle)
+        private bool CheckDidSwapParticleDensity(
+            in bool useSwapLock,
+            in bool occupied, 
+            in int currentGridIndex, 
+            in int newGridIndex,
+            ref Particle selectedParticle, 
+            ref Particle occupyingParticle)
         {
             //Check material densities
             //------------------------------------------------//
@@ -920,6 +1001,7 @@ namespace PowderToy
                 return false;
                     
             var didSwap = ParticleDensityCheck(
+                useSwapLock,
                 currentGridIndex,
                 newGridIndex,
                 ref selectedParticle,
@@ -932,6 +1014,7 @@ namespace PowderToy
 
         //TODO This might have to be generalized for Gases & Liquids
         private bool ParticleDensityCheck(
+            in bool useSwapLock,
             in int fromGridIndex, 
             in int toGridIndex, 
             ref Particle fromParticle,
@@ -965,9 +1048,12 @@ namespace PowderToy
                 ref fromGridPos, ref toGridPos,
                 ref fromParticle, ref toParticle);
 
-            fromParticle.IsSwapLocked = true;
-            toParticle.IsSwapLocked = true;
-            
+            if (useSwapLock)
+            {
+                fromParticle.IsSwapLocked = true;
+                toParticle.IsSwapLocked = true;
+            }
+
             return true;
         }
 
@@ -991,6 +1077,30 @@ namespace PowderToy
 
            toParticle.XCoord = fromX;
            toParticle.YCoord = fromY;
+
+        }
+        private void SwapParticlePositions(in int fromGridIndex, in int toGridIndex,
+            ref Particle fromParticle, ref Particle toParticle)
+        {
+            var fromGridPos = _gridPositions[fromGridIndex];
+            var toGridPos = _gridPositions[toGridIndex];
+            
+            //Otherwise we swap the two particles, and update the grid
+            fromGridPos.ParticleIndex = toParticle.Index;
+            toGridPos.ParticleIndex = fromParticle.Index;
+
+            _gridPositions[fromGridIndex] = fromGridPos;
+            _gridPositions[toGridIndex] = toGridPos;
+            
+            //and Update the particle Coordinates
+            var fromX = fromParticle.XCoord;
+            var fromY = fromParticle.YCoord;
+
+            fromParticle.XCoord = toParticle.XCoord;
+            fromParticle.YCoord = toParticle.YCoord;
+
+            toParticle.XCoord = fromX;
+            toParticle.YCoord = fromY;
 
         }
 
