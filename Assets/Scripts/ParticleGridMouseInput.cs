@@ -1,4 +1,5 @@
 using System;
+using PowderToy.UI;
 using UnityEngine;
 
 namespace PowderToy
@@ -6,19 +7,16 @@ namespace PowderToy
     //TODO This needs to be a queue, race conditions causing issues with Updates
     public class ParticleGridMouseInput : MonoBehaviour
     {
-        public static Action<Particle.TYPE> OnParticleTypeSelected;
-        
+
         private const int MIN_RADIUS = 0;
         private const int MAX_RADIUS = 7;
         public static Vector2Int MouseCoordinate { get; private set; }
         public static int SpawnRadius { get; private set; }
 
-        [SerializeField]
-        private bool usePressAndHold = true;
+        [SerializeField] private bool usePressAndHold = true;
 
-        [SerializeField]
         private Particle.TYPE selectedParticleType;
-        
+
         private Vector2Int _gridSize;
         private Vector2 _screenSize;
 
@@ -31,24 +29,25 @@ namespace PowderToy
         {
             Grid.OnInit += Init;
             WorldTimer.OnTick += OnTick;
+            UIManager.OnParticleTypeSelected += OnParticleTypeSelected;
         }
 
         private void Start()
         {
             SpawnRadius = 0;
-            
+
             //Make sure that we announce the selected type on start
-            OnParticleTypeSelected?.Invoke(selectedParticleType);
+            //OnParticleTypeSelected?.Invoke(selectedParticleType);
         }
 
         // Update is called once per frame
         private void Update()
         {
             UpdateScreenPosition();
-            
+
             if (Input.GetKeyDown(KeyCode.Mouse0))
                 _mouseDown = true;
-            else if(Input.GetKeyUp(KeyCode.Mouse0))
+            else if (Input.GetKeyUp(KeyCode.Mouse0))
                 _mouseDown = false;
 
             if (Input.GetKeyDown(KeyCode.A) && SpawnRadius > MIN_RADIUS)
@@ -56,14 +55,16 @@ namespace PowderToy
             else if (Input.GetKeyDown(KeyCode.D) && SpawnRadius < MAX_RADIUS)
                 SpawnRadius++;
 
-            if (Input.GetKeyDown(KeyCode.Tab))
-                ToggleSpawnType();
+            /*if (Input.GetKeyDown(KeyCode.Tab))
+                ToggleSpawnType();*/
         }
 
         private void OnDisable()
         {
             Grid.OnInit -= Init;
             WorldTimer.OnTick -= OnTick;
+            UIManager.OnParticleTypeSelected -= OnParticleTypeSelected;
+
         }
 
         //Init Function
@@ -108,11 +109,11 @@ namespace PowderToy
                     throw new ArgumentOutOfRangeException();
             }
 
-            if(usePressAndHold == false)
+            if (usePressAndHold == false)
                 _mouseDown = false;
         }
 
-        private void ToggleSpawnType()
+        /*private void ToggleSpawnType()
         {
             var newType = (int)selectedParticleType;
             newType++;
@@ -122,9 +123,14 @@ namespace PowderToy
 
             selectedParticleType = (Particle.TYPE)newType;
             OnParticleTypeSelected?.Invoke(selectedParticleType);
+        }*/
+
+        private void OnParticleTypeSelected(Particle.TYPE particleType)
+        {
+            selectedParticleType = particleType;
         }
-        
-        //UpdateScreenPosition
+
+    //UpdateScreenPosition
         //============================================================================================================//
         private void UpdateScreenPosition()
         {
