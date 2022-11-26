@@ -45,7 +45,7 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 3
       m_NumAlphaKeys: 2
-    hasDensity: 1
+    hasDensity: 0
     density: 2
     hasLifetime: 0
     lifetimeMin: 0
