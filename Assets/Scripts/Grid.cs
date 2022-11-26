@@ -428,6 +428,8 @@ namespace PowderToy
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
+
+                    //------------------------------------------------//
                     
                     if (particle.HasLifeSpan)
                     {
@@ -437,12 +439,21 @@ namespace PowderToy
                             continue;
                         }
                     }
+
+                    //------------------------------------------------//
                     
-                    if (particle.Type == Particle.TYPE.FIRE)
-                        FireParticleBurnCheck(_particleSurroundings);
+                    switch (particle.Type)
+                    {
+                        case Particle.TYPE.FIRE:
+                            FireParticleBurnCheck(_particleSurroundings);
+                            break;
+                        case Particle.TYPE.STEAM:
+                            SteamCondensation(_particleSurroundings);
+                            break;
+                    }
                     
-                    /*if(allowSleeping && particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
-                        particle.Asleep = true;*/
+                    //------------------------------------------------//
+                    
                 }
                 
                 _particleRowContainers[i].Clear();
@@ -934,7 +945,7 @@ namespace PowderToy
             //Check if there is an empty space near the fire
             //------------------------------------------------//
             //This is to slow the spread of fire, forcing it to work outside in
-            for (var i = 0; i < 8; i++)
+            for (var i = 0; i < 9; i++)
             {
                 var index = particleSurroundings[i];
                 if (index < 0)
@@ -958,7 +969,7 @@ namespace PowderToy
             //[3 x 5]
             //[6 7 8]
             //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
-            for (var i = 1; i < 8; i+=2)
+            for (var i = 1; i < 9; i+=2)
             {
                 var index = particleSurroundings[i];
                 if (index < 0)
@@ -979,6 +990,84 @@ namespace PowderToy
 
                 ParticleFactory.ConvertToFire(ref posParticle);
             }
+        }
+        
+        private void SteamCondensation(in int[] particleSurroundings)
+        {
+            //Check if there is an empty space near the fire
+            //------------------------------------------------//
+            //This is to slow the spread of fire, forcing it to work outside in
+            for (var i = 0; i < 9; i++)
+            {
+                var index = particleSurroundings[i];
+                if (index < 0)
+                    continue;
+
+                var gridPos = _gridPositions[index];
+                if (gridPos.IsOccupied)
+                    continue;
+
+                return;
+            }
+
+            //Check for things to burn
+            //------------------------------------------------------------------//
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
+            for (var i = 0; i < 9; i++)
+            {
+                if(i == 4)
+                    continue;
+                
+                var index = particleSurroundings[i];
+                if (index < 0)
+                    continue;
+
+                var gridPos = _gridPositions[index];
+
+                if (_activeParticles[gridPos.ParticleIndex].Type != Particle.TYPE.STEAM)
+                    return;
+            }
+
+            //------------------------------------------------//
+            
+            ref var currentParticle = ref _activeParticles[4];
+            ParticleFactory.ConvertTo(Particle.TYPE.WATER, ref currentParticle);
+            
+            //------------------------------------------------//
+            
+            for (var i = 0; i < 9; i++)
+            {
+                if(i == 4)
+                    continue;
+
+                int index;
+                GridPos gridPos;
+
+
+                try
+                {
+                    index = particleSurroundings[i];
+                    if (index < 0)
+                        continue;
+                    gridPos = _gridPositions[index];
+                    if(gridPos.IsOccupied == false)
+                        continue;
+                    
+                    ref var posParticle = ref _activeParticles[gridPos.ParticleIndex];
+
+                    KillParticleImmediate(ref posParticle);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine(e);
+                    throw;
+                }
+            }
+            
+            //------------------------------------------------//
         }
 
         private bool CheckDidSwapParticleDensity(
