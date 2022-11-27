@@ -1,105 +1,149 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using PowderToy;
+using PowderToy.ScriptableObjects;
+using PowderToy.UI;
 using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Serialization;
 using Grid = PowderToy.Grid;
 
-public class UIManager : MonoBehaviour
+namespace PowderToy.UI
 {
-    //Properties
-    //============================================================================================================//
-    
-    [SerializeField, TitleGroup("Label Fields")]
-    private TMP_Text selectedTypeText;
-    [SerializeField]
-    private TMP_Text particleCountText;
-    [SerializeField]
-    private TMP_Text frameRateText;
-
-    [SerializeField, Min(0f), TitleGroup("Update Rate")]
-    private float tickTime;
-    private float _tickTimer;
-
-    private int _maxParticleCount;
-    private Grid _particleGrid;
-
-    [SerializeField, ReadOnly]
-    private string[] particleNames;
-
-    //Unity Functions
-    //============================================================================================================//
-
-    private void OnEnable()
+    public class UIManager : MonoBehaviour
     {
-        Grid.OnInit += OnInit;
-        ParticleGridMouseInput.OnParticleTypeSelected += OnNewSelectedType;
-    }
+        public static Action<Particle.TYPE> OnParticleTypeSelected;
 
-    // Start is called before the first frame update
-    private void Start()
-    {
-        _particleGrid = FindObjectOfType<Grid>();
-    }
+        //Properties
+        //============================================================================================================//
 
-    // Update is called once per frame
-    private void Update()
-    {
-        var dt = Time.deltaTime;
-        if (_tickTimer < tickTime)
+        [SerializeField, TitleGroup("Label Fields")]
+        private TMP_Text selectedTypeText;
+
+        [SerializeField] private TMP_Text particleCountText;
+        [SerializeField] private TMP_Text frameRateText;
+
+        [SerializeField, Min(0f), TitleGroup("Update Rate")]
+        private float tickTime;
+
+        private float _tickTimer;
+
+        private int _maxParticleCount;
+        private Grid _particleGrid;
+
+        [SerializeField, ReadOnly] private string[] particleNames;
+
+        [SerializeField, TitleGroup("Button List")]
+        private ButtonElement buttonPrefab;
+        private ButtonElement[] _activeButtons;
+
+        [SerializeField]
+        private RectTransform buttonContainer;
+
+        [SerializeField]
+        private ParticleDataScriptableObject particleDataScriptableObject;
+
+        [SerializeField]
+        private Particle.TYPE startSelection;
+
+        //Unity Functions
+        //============================================================================================================//
+
+        private void OnEnable()
         {
-            _tickTimer += dt;
-            return;
+            Grid.OnInit += OnInit;
+            //ParticleGridMouseInput.OnParticleTypeSelected += OnParticleButtonPressed;
         }
 
-        UpdateParticleCount();
-        UpdateFrameRate(dt);
-        _tickTimer = 0f;
-    }
+        // Start is called before the first frame update
+        private void Start()
+        {
+            _particleGrid = FindObjectOfType<Grid>();
+            SetupButtons();
+        }
 
-    private void OnDisable()
-    {
-        Grid.OnInit -= OnInit;
-        ParticleGridMouseInput.OnParticleTypeSelected -= OnNewSelectedType;
-    }
+        // Update is called once per frame
+        private void Update()
+        {
+            var dt = Time.deltaTime;
+            if (_tickTimer < tickTime)
+            {
+                _tickTimer += dt;
+                return;
+            }
 
-    //============================================================================================================//
+            UpdateParticleCount();
+            UpdateFrameRate(dt);
+            _tickTimer = 0f;
+        }
 
-    private void OnInit(Vector2Int gridSize)
-    {
-        _maxParticleCount = gridSize.x * gridSize.y;
-    }
+        private void OnDisable()
+        {
+            Grid.OnInit -= OnInit;
+            //ParticleGridMouseInput.OnParticleTypeSelected -= OnParticleButtonPressed;
+        }
 
-    private void OnNewSelectedType(Particle.TYPE type)
-    {
-        //TODO Might want to store the particle type names somewhere
-        selectedTypeText.text = $"Spawn Type: {particleNames[(int)type]}";
-    }
+        //============================================================================================================//
 
-    private void UpdateParticleCount()
-    {
-        //FIXME That allocated some garbage, want to find a better way to do this. Maybe StringBuilder
-        particleCountText.text =
-            $"Particles: {_particleGrid.ParticleCount:N0}/{_maxParticleCount:N0}";
-    }
+        private void OnInit(Vector2Int gridSize)
+        {
+            _maxParticleCount = gridSize.x * gridSize.y;
+            OnParticleButtonPressed(startSelection);
+        }
 
-    private void UpdateFrameRate(in float deltaTime)
-    {
-        var fps = Mathf.FloorToInt(1f / deltaTime);
+        private void OnParticleButtonPressed(Particle.TYPE type)
+        {
+            //TODO Might want to store the particle type names somewhere
+            selectedTypeText.text = $"Spawn Type: {particleNames[(int)type]}";
+            
+            OnParticleTypeSelected?.Invoke(type);
+        }
 
-        frameRateText.text = $"{fps.ToString()}fps";
-    }
+        private void UpdateParticleCount()
+        {
+            //FIXME That allocated some garbage, want to find a better way to do this. Maybe StringBuilder
+            particleCountText.text = $"Particles: {_particleGrid.ParticleCount:N0}/{_maxParticleCount:N0}";
+        }
 
-    //============================================================================================================//
-#if  UNITY_EDITOR
+        private void UpdateFrameRate(in float deltaTime)
+        {
+            var fps = Mathf.FloorToInt(1f / deltaTime);
 
-    private void OnValidate()
-    {
-        particleNames = Enum.GetNames(typeof(Particle.TYPE));
-    }
+            frameRateText.text = $"{fps.ToString()}fps";
+        }
+
+        //Buttons Setup
+        //============================================================================================================//
+
+        private void SetupButtons()
+        {
+            var particleDatas = particleDataScriptableObject.GetParticleDataDictionary().Values.ToArray();
+            _activeButtons = new ButtonElement[particleDatas.Length];
+            
+            for (var i = 0; i < particleDatas.Length; i++)
+            {
+                var particleData = particleDatas[i];
+                var particleType = particleData.type;
+                
+                
+                var buttonElement = Instantiate(buttonPrefab, buttonContainer, false);
+                buttonElement.Init(particleData.name, particleType, OnParticleButtonPressed);
+                buttonElement.gameObject.name = $"{particleData.name}Button";
+                _activeButtons[i] = buttonElement;
+            }
+        }
+
+        //============================================================================================================//
+#if UNITY_EDITOR
+
+        private void OnValidate()
+        {
+            particleNames = Enum.GetNames(typeof(Particle.TYPE));
+        }
 
 #endif
+    }
 }
