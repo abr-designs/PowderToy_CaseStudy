@@ -266,6 +266,7 @@ MonoBehaviour:
   DebugView: 0
   allowSleeping: 0
   size: {x: 30, y: 20}
+  ambientTemperature: 20
 --- !u!114 &1189435741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -279,7 +280,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   usePressAndHold: 1
-  selectedParticleType: 1
+  selectedParticleType: 7
 --- !u!114 &1189435742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -325,6 +326,8 @@ MonoBehaviour:
   particleType: 0
   materialType: 0
   lifeTime: 0
+  currentTemperature: 0
+  hasWarmed: 0
 --- !u!1 &1268238375
 GameObject:
   m_ObjectHideFlags: 0
@@ -430,6 +433,8 @@ MonoBehaviour:
   - STEAM
   - FIRE
   - OIL
+  - STONE
+  - MOLTEN_STONE
 --- !u!224 &1268238380
 RectTransform:
   m_ObjectHideFlags: 0
@@ -491,6 +496,8 @@ MonoBehaviour:
   particleType: 0
   materialType: 0
   lifeTime: 0
+  currentTemperature: 0
+  hasWarmed: 0
 --- !u!4 &1350904606
 Transform:
   m_ObjectHideFlags: 0

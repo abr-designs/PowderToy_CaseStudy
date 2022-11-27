@@ -39,7 +39,10 @@ namespace PowderToy
             
             toSet.Density = template.GetDensity();
             toSet.Lifetime = template.GetRandomLifetime();
-            toSet.ChanceToBurn = (uint)template.burnChance;
+            toSet.CombustionTemperature = template.combustionTemperature;
+            toSet.CurrentTemperature = template.overrideStartTemperature ? template.overrideTemp : Grid.AmbientTemperature;
+            toSet.SpreadsHeat = template.spreadHeat;
+            toSet.CanCool = template.canCool;
 
             /*return new Particle(
                 particleType,
@@ -60,7 +63,7 @@ namespace PowderToy
         
         //============================================================================================================//
         
-        public static void ConvertTo(in Particle.TYPE toParticleType, ref Particle particleToConvert)
+        public static void ConvertTo(in Particle.TYPE toParticleType, ref Particle particleToConvert, in bool useCurrentTemp = true)
         {
             var newTemplate = _templates[toParticleType];
 
@@ -72,7 +75,11 @@ namespace PowderToy
             particleToConvert.CanBurn = newTemplate.canBurn;
             particleToConvert.Density = newTemplate.GetDensity();
             particleToConvert.Lifetime = newTemplate.GetRandomLifetime();
-            particleToConvert.ChanceToBurn = (uint)newTemplate.burnChance;
+            particleToConvert.CombustionTemperature = newTemplate.combustionTemperature;
+            particleToConvert.SpreadsHeat = newTemplate.spreadHeat;
+            particleToConvert.CanCool = newTemplate.canCool;
+            //FIXME This might not work the way I want
+            particleToConvert.CurrentTemperature = useCurrentTemp ? particleToConvert.CurrentTemperature : newTemplate.overrideTemp;
         }
 
         public static void ConvertToFire(ref Particle toConvert)
@@ -83,10 +90,10 @@ namespace PowderToy
             toConvert.Type = Particle.TYPE.FIRE;
             toConvert.Color = fireTemplate.GetRandomColor();
             toConvert.CanBurn = false;
+            toConvert.SpreadsHeat = fireTemplate.spreadHeat;
             
             toConvert.HasLifeSpan = fireTemplate.hasLifetime;
             toConvert.Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier);
-            toConvert.ChanceToBurn = (uint)fireTemplate.burnChance;
         }
         
         //============================================================================================================//

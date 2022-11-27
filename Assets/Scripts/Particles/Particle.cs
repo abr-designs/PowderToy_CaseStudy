@@ -16,7 +16,9 @@ namespace PowderToy
             WOOD,
             STEAM,
             FIRE,
-            OIL
+            OIL,
+            STONE,
+            MOLTEN_STONE
         }
 
         public enum MATERIAL
@@ -47,47 +49,18 @@ namespace PowderToy
         public uint Lifetime;
 
         public bool CanBurn;
-        public uint ChanceToBurn;
+        public int CombustionTemperature;
+
+        public int CurrentTemperature;
 
         /// <summary>
         /// This value is used when two particles swap positions, and that counts as both of their updates for that tick
         /// </summary>
         public bool IsSwapLocked;
 
-        /*public Particle(
-            in TYPE type, 
-            in MATERIAL material, 
-            in Color32 color, 
-            
-            in bool hasDensity,
-            in bool hasLifeSpan,
-            in bool canBurn,
-            
-            in int index, 
-            in int x, 
-            in int y)
-        {
-            SleepCounter = 0;
-            Asleep = false;
-            KillNextTick = false;
-
-            Type = type;
-            Material = material;
-            Color = color;
-            Index = index;
-
-            XCoord = x;
-            YCoord = y;
-
-            HasDensity = hasDensity;
-            Density = 10;
-
-            HasLifeSpan = hasLifeSpan;
-            Lifetime = 0;
-
-            CanBurn = canBurn;
-            ChanceToBurn = 0;
-        }*/
+        public bool SpreadsHeat;
+        public bool CanCool;
+        public bool HasChangedTemp;
 
         public void CopyFrom(in Particle copyFrom)
         {
@@ -105,7 +78,10 @@ namespace PowderToy
             HasLifeSpan = copyFrom.HasLifeSpan;
             Lifetime = copyFrom.Lifetime;
             CanBurn = copyFrom.CanBurn;
-            ChanceToBurn = copyFrom.ChanceToBurn;
+            CombustionTemperature = copyFrom.CombustionTemperature;
+            CurrentTemperature = copyFrom.CurrentTemperature;
+            SpreadsHeat = copyFrom.SpreadsHeat;
+            CanCool = copyFrom.CanCool;
         }
     }
 }

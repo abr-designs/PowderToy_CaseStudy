@@ -90,12 +90,7 @@ namespace PowderToy
                         InteractionRadius = (uint)SpawnRadius
                     };
                     break;
-                case Particle.TYPE.SAND:
-                case Particle.TYPE.WATER:
-                case Particle.TYPE.WOOD:
-                case Particle.TYPE.STEAM:
-                case Particle.TYPE.FIRE:
-                case Particle.TYPE.OIL:
+                default:
                     Grid.QueuedCommand = new Command
                     {
                         Type = Command.TYPE.SPAWN_PARTICLE,
@@ -104,8 +99,6 @@ namespace PowderToy
                         InteractionRadius = (uint)SpawnRadius
                     };
                     break;
-                default:
-                    throw new ArgumentOutOfRangeException();
             }
 
             if(usePressAndHold == false)
@@ -116,7 +109,7 @@ namespace PowderToy
         {
             var newType = (int)selectedParticleType;
             newType++;
-            if (newType > 6)
+            if (newType > 8)
                 newType = 0;
 
 
