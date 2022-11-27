@@ -30,7 +30,7 @@ namespace PowderToy.Utilities
 
         private void OnInit(Vector2Int gridSize)
         {
-            PixelPerfectCamera.refResolutionX = gridSize.x;
+            PixelPerfectCamera.refResolutionX = Mathf.CeilToInt(gridSize.x * 1.5f);
             PixelPerfectCamera.refResolutionY = gridSize.y;
         }
     }
