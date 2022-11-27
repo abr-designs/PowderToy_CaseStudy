@@ -40,7 +40,7 @@ namespace PowderToy
             toSet.Density = template.GetDensity();
             toSet.Lifetime = template.GetRandomLifetime();
             toSet.CombustionTemperature = template.combustionTemperature;
-            toSet.CurrentTemperature = template.hasStartTemperature ? template.startTemp : Grid.AmbientTemperature;
+            toSet.CurrentTemperature = template.overrideStartTemperature ? template.overrideTemp : Grid.AmbientTemperature;
             toSet.SpreadsHeat = template.spreadHeat;
             toSet.CanCool = template.canCool;
 
@@ -79,7 +79,7 @@ namespace PowderToy
             particleToConvert.SpreadsHeat = newTemplate.spreadHeat;
             particleToConvert.CanCool = newTemplate.canCool;
             //FIXME This might not work the way I want
-            particleToConvert.CurrentTemperature = useCurrentTemp ? particleToConvert.CurrentTemperature : newTemplate.startTemp;
+            particleToConvert.CurrentTemperature = useCurrentTemp ? particleToConvert.CurrentTemperature : newTemplate.overrideTemp;
         }
 
         public static void ConvertToFire(ref Particle toConvert)

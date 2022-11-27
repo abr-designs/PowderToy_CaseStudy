@@ -265,6 +265,8 @@ namespace PowderToy
                 ParticleIndex = newParticle.Index
             };
 
+            newParticle.HasChangedTemp = true;
+            CheckShouldChangeState(true, ref newParticle);
             switch (newParticle.Material)
             {
                 //Don't want to track things that will never move
@@ -1030,7 +1032,12 @@ namespace PowderToy
 
             //------------------------------------------------//
             var hasAir = HasAir(particleSurroundings);
-            
+
+            CheckShouldChangeState(hasAir, ref particle);
+        }
+        
+        private void CheckShouldChangeState(in bool hasAir, ref Particle particle)
+        {
             if(particle.HasChangedTemp == false)
                 return;
 

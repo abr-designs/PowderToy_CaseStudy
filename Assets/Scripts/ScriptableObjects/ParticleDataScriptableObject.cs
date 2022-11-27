@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Unity.VisualScripting;
 using UnityEngine;
-
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 namespace PowderToy.ScriptableObjects
@@ -15,36 +15,43 @@ namespace PowderToy.ScriptableObjects
         [Serializable]
         public struct ParticleData
         {
+            [Header("Basic Info")]
             public string name;
             public Particle.TYPE type;
-
             public Particle.MATERIAL material;
+            
+            [Header("Appearance")]
             public Gradient gradient;
 
-            [Space(10f)]
+            [Header("Material Density")]
             public bool hasDensity;
             [Range(0f,2f)]
             public float density;
 
-            [Space(10f)]
+            [Header("Lifetime")]
             public bool hasLifetime;
             [Min(0)]
             public int lifetimeMin;
             [Min(0)]
             public int lifetimeMax;
             
-            [Space(10f)]
+            [Header("Combustion Info")]
             public bool canBurn;
-            public bool spreadHeat;
-            public bool canCool;
             public int combustionTemperature;
             [Min(0.1f)]
             public float burnLifeMultiplier;
             
+            [Header("Heating & Cooling")]
+            public bool spreadHeat;
+            public bool canCool;
 
-            [Space(10f)]
-            public bool hasStartTemperature;
-            public int startTemp;
+            [FormerlySerializedAs("hasStartTemperature")] 
+            [Header("Custom Start Temperature")]
+            public bool overrideStartTemperature;
+            [FormerlySerializedAs("startTemp")] 
+            public int overrideTemp;
+            
+            //--------------------------------------------------//
             
             public Color32 GetRandomColor()
             {
