@@ -96,6 +96,11 @@ namespace PowderToy
         private static int _sizeX;
         private static int _sizeY;
 
+        [SerializeField, DisableInPlayMode, TitleGroup("Properties")]
+        private int ambientTemperature;
+
+        public static int AmbientTemperature { get; private set; }
+
         private ParticleRenderer _particleRenderer;
 
         private bool gridRequiresCleaning;
@@ -159,6 +164,7 @@ namespace PowderToy
 
             _particleRenderer = FindObjectOfType<ParticleRenderer>();
 
+            AmbientTemperature = ambientTemperature;
             OnInit?.Invoke(size);
         }
 
@@ -437,9 +443,20 @@ namespace PowderToy
                             continue;
                         }
                     }
-                    
+
                     if (particle.Type == Particle.TYPE.FIRE)
-                        FireParticleBurnCheck(_particleSurroundings);
+                    {
+                        FireParticleWarmSurroundings(_particleSurroundings);
+                    }
+                    //FIXME Might need a way of slowing the pace of this
+                    else if (particle.HasChangedTemp == false && particle.CurrentTemperature != ambientTemperature)
+                    {
+                        particle.CurrentTemperature += particle.CurrentTemperature > ambientTemperature? -1 : + 1;
+                        
+                        var hasAir = HasAir(_particleSurroundings);
+                        particle.HasChangedTemp = true;
+                        CheckShouldChangeState(hasAir, ref particle);
+                    }
                     
                     /*if(allowSleeping && particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
                         particle.Asleep = true;*/
@@ -504,14 +521,16 @@ namespace PowderToy
                 //We can't move nothing
                 if(particle.Type == Particle.TYPE.NONE)
                     continue;
+                
+                particle.HasChangedTemp = false;
+                particle.IsSwapLocked = false;
+
                 //Solid Particles do not move thus do not need to be updated. Unless they're on fire.
                 if(particle.Material == Particle.MATERIAL.SOLID && particle.Type != Particle.TYPE.FIRE)
                     continue;
                 //If we aren't updating the particle, don't queue it for updates
                 if(particle.Asleep)
                     continue;
-
-                particle.IsSwapLocked = false;
                 
                 try
                 {
@@ -803,7 +822,7 @@ namespace PowderToy
                     myParticle.Type == Particle.TYPE.WATER && 
                     occupyingParticle.Type == Particle.TYPE.FIRE)
                 {
-                    ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref myParticle);
+                    ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref myParticle, false);
                     //MarkParticleForDeath(ref occupyingParticle);
                     KillParticleImmediate(ref occupyingParticle);
                     return true;
@@ -928,9 +947,8 @@ namespace PowderToy
 
         //============================================================================================================//
 
-        private void FireParticleBurnCheck(in int[] particleSurroundings)
+        private bool HasAir(in int[] particleSurroundings)
         {
-            var hasAir = false;
             //Check if there is an empty space near the fire
             //------------------------------------------------//
             //This is to slow the spread of fire, forcing it to work outside in
@@ -944,13 +962,19 @@ namespace PowderToy
                 if (gridPos.IsOccupied)
                     continue;
 
-                hasAir = true;
+                return true;
 
             }
 
+            return false;
+        }
+        private void FireParticleWarmSurroundings(in int[] particleSurroundings)
+        {
+
+            var hasAir = HasAir(particleSurroundings);
             //If there is not nearby air tile, then we can't pass on fire
-            if (hasAir == false)
-                return;
+            //if (hasAir == false)
+            //    return;
             
             //Check for things to burn
             //------------------------------------------------------------------//
@@ -958,8 +982,12 @@ namespace PowderToy
             //[3 x 5]
             //[6 7 8]
             //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
-            for (var i = 1; i < 8; i+=2)
+            for (var i = 0; i < 9; i++)
             {
+                //Skip My Particle
+                if (i == 4)
+                    continue;
+                
                 var index = particleSurroundings[i];
                 if (index < 0)
                     continue;
@@ -972,15 +1000,66 @@ namespace PowderToy
 
                 if (posParticle.CanBurn == false)
                     continue;
+                
+                //Dont want to double burn
+                //if (posParticle.HasWarmed)
+                //    continue;
 
-                //TODO Should probably increase the chance of burning over time, when back-to-back calls occur
+                posParticle.CurrentTemperature++;
+                posParticle.HasChangedTemp = true;
+
+                CheckShouldChangeState(hasAir, ref posParticle);
+
+                /*//TODO Should probably increase the chance of burning over time, when back-to-back calls occur
                 if (Random.Range(0, 100) > posParticle.ChanceToBurn)
                     continue;
 
-                ParticleFactory.ConvertToFire(ref posParticle);
+                ParticleFactory.ConvertToFire(ref posParticle);*/
             }
         }
 
+        private void CheckShouldChangeState(in bool hasAir, ref Particle particle)
+        {
+            if(particle.HasChangedTemp == false)
+                return;
+
+            var readyToCombust = particle.CurrentTemperature >= particle.CombustionTemperature;
+
+            if (readyToCombust)
+            {
+                switch (particle.Type)
+                {
+                    case Particle.TYPE.WATER:
+                        ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref particle);
+                        break;
+                    case Particle.TYPE.WOOD when hasAir:
+                    case Particle.TYPE.OIL when hasAir:
+                        ParticleFactory.ConvertToFire(ref particle);
+                        break;
+                    //default:
+                    //    throw new ArgumentOutOfRangeException();
+                }
+            }
+            else
+            {
+                switch (particle.Type)
+                {
+                    case Particle.TYPE.STEAM:
+                        if (Random.value >= 0.5f)
+                            ParticleFactory.ConvertTo(Particle.TYPE.WATER, ref particle);
+                        else
+                            KillParticleImmediate(ref particle);
+                        break;
+                }
+            }
+            
+
+
+        }
+
+        //Density Functions
+        //============================================================================================================//
+        
         private bool CheckDidSwapParticleDensity(
             in bool useSwapLock,
             in bool occupied, 

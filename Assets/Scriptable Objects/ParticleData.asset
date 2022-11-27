@@ -51,8 +51,10 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 0
-    burnChance: 0
+    combustionTemperature: 0
     burnLifeMultiplier: 1
+    hasStartTemperature: 1
+    startTemp: 20
   - name: Water
     type: 2
     material: 3
@@ -90,9 +92,11 @@ MonoBehaviour:
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0
-    canBurn: 0
-    burnChance: 0
+    canBurn: 1
+    combustionTemperature: 100
     burnLifeMultiplier: 1
+    hasStartTemperature: 1
+    startTemp: 20
   - name: Wood
     type: 3
     material: 1
@@ -131,8 +135,10 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    burnChance: 1
+    combustionTemperature: 350
     burnLifeMultiplier: 7.5
+    hasStartTemperature: 1
+    startTemp: 20
   - name: Steam
     type: 4
     material: 4
@@ -170,9 +176,11 @@ MonoBehaviour:
     hasLifetime: 0
     lifetimeMin: 0
     lifetimeMax: 0
-    canBurn: 0
-    burnChance: 0
+    canBurn: 1
+    combustionTemperature: 100
     burnLifeMultiplier: 1
+    hasStartTemperature: 1
+    startTemp: 200
   - name: Fire
     type: 5
     material: 4
@@ -211,8 +219,10 @@ MonoBehaviour:
     lifetimeMin: 10
     lifetimeMax: 60
     canBurn: 0
-    burnChance: 0
+    combustionTemperature: 0
     burnLifeMultiplier: 1
+    hasStartTemperature: 1
+    startTemp: 500
   - name: Oil
     type: 6
     material: 3
@@ -251,5 +261,7 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    burnChance: 2
+    combustionTemperature: 280
     burnLifeMultiplier: 10
+    hasStartTemperature: 1
+    startTemp: 20

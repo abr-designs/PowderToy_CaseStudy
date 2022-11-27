@@ -15,6 +15,8 @@ namespace PowderToy.Utilities
         [SerializeField]private Particle.TYPE particleType;
         [SerializeField]private Particle.MATERIAL materialType;
         [SerializeField]private int lifeTime;
+        [SerializeField]private int currentTemperature;
+        [SerializeField]private bool hasWarmed;
         
         private Grid grid;
         private void OnEnable()
@@ -58,6 +60,8 @@ namespace PowderToy.Utilities
             particleType = data.particle.Type;
             materialType = data.particle.Material;
             lifeTime = (int)data.particle.Lifetime;
+            currentTemperature = data.particle.CurrentTemperature;
+            hasWarmed = data.particle.HasChangedTemp;
 
         }
 #endif

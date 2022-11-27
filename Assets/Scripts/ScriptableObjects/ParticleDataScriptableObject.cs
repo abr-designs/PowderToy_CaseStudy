@@ -35,10 +35,13 @@ namespace PowderToy.ScriptableObjects
             
             [Space(10f)]
             public bool canBurn;
-            [Range(0, 100)]
-            public int burnChance;
+            public int combustionTemperature;
             [Min(0.1f)]
             public float burnLifeMultiplier;
+
+            [Space(10f)]
+            public bool hasStartTemperature;
+            public int startTemp;
             
             public Color32 GetRandomColor()
             {

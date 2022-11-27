@@ -39,7 +39,8 @@ namespace PowderToy
             
             toSet.Density = template.GetDensity();
             toSet.Lifetime = template.GetRandomLifetime();
-            toSet.ChanceToBurn = (uint)template.burnChance;
+            toSet.CombustionTemperature = template.combustionTemperature;
+            toSet.CurrentTemperature = template.hasStartTemperature ? template.startTemp : Grid.AmbientTemperature;
 
             /*return new Particle(
                 particleType,
@@ -60,7 +61,7 @@ namespace PowderToy
         
         //============================================================================================================//
         
-        public static void ConvertTo(in Particle.TYPE toParticleType, ref Particle particleToConvert)
+        public static void ConvertTo(in Particle.TYPE toParticleType, ref Particle particleToConvert, in bool useCurrentTemp = true)
         {
             var newTemplate = _templates[toParticleType];
 
@@ -72,7 +73,9 @@ namespace PowderToy
             particleToConvert.CanBurn = newTemplate.canBurn;
             particleToConvert.Density = newTemplate.GetDensity();
             particleToConvert.Lifetime = newTemplate.GetRandomLifetime();
-            particleToConvert.ChanceToBurn = (uint)newTemplate.burnChance;
+            particleToConvert.CombustionTemperature = newTemplate.combustionTemperature;
+            //FIXME This might not work the way I want
+            particleToConvert.CurrentTemperature = useCurrentTemp ? particleToConvert.CurrentTemperature : newTemplate.startTemp;
         }
 
         public static void ConvertToFire(ref Particle toConvert)
@@ -86,7 +89,7 @@ namespace PowderToy
             
             toConvert.HasLifeSpan = fireTemplate.hasLifetime;
             toConvert.Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier);
-            toConvert.ChanceToBurn = (uint)fireTemplate.burnChance;
+            //toConvert.ChanceToBurn = (uint)fireTemplate.burnChance;
         }
         
         //============================================================================================================//
