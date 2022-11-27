@@ -41,6 +41,8 @@ namespace PowderToy
             toSet.Lifetime = template.GetRandomLifetime();
             toSet.CombustionTemperature = template.combustionTemperature;
             toSet.CurrentTemperature = template.hasStartTemperature ? template.startTemp : Grid.AmbientTemperature;
+            toSet.SpreadsHeat = template.spreadHeat;
+            toSet.CanCool = template.canCool;
 
             /*return new Particle(
                 particleType,
@@ -74,6 +76,8 @@ namespace PowderToy
             particleToConvert.Density = newTemplate.GetDensity();
             particleToConvert.Lifetime = newTemplate.GetRandomLifetime();
             particleToConvert.CombustionTemperature = newTemplate.combustionTemperature;
+            particleToConvert.SpreadsHeat = newTemplate.spreadHeat;
+            particleToConvert.CanCool = newTemplate.canCool;
             //FIXME This might not work the way I want
             particleToConvert.CurrentTemperature = useCurrentTemp ? particleToConvert.CurrentTemperature : newTemplate.startTemp;
         }
@@ -86,10 +90,10 @@ namespace PowderToy
             toConvert.Type = Particle.TYPE.FIRE;
             toConvert.Color = fireTemplate.GetRandomColor();
             toConvert.CanBurn = false;
+            toConvert.SpreadsHeat = fireTemplate.spreadHeat;
             
             toConvert.HasLifeSpan = fireTemplate.hasLifetime;
             toConvert.Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier);
-            //toConvert.ChanceToBurn = (uint)fireTemplate.burnChance;
         }
         
         //============================================================================================================//

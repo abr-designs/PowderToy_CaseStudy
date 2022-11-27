@@ -51,6 +51,8 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 0
+    spreadHeat: 0
+    canCool: 0
     combustionTemperature: 0
     burnLifeMultiplier: 1
     hasStartTemperature: 1
@@ -93,6 +95,8 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
+    spreadHeat: 0
+    canCool: 0
     combustionTemperature: 100
     burnLifeMultiplier: 1
     hasStartTemperature: 1
@@ -135,6 +139,8 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
+    spreadHeat: 0
+    canCool: 0
     combustionTemperature: 350
     burnLifeMultiplier: 7.5
     hasStartTemperature: 1
@@ -177,6 +183,8 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
+    spreadHeat: 0
+    canCool: 0
     combustionTemperature: 100
     burnLifeMultiplier: 1
     hasStartTemperature: 1
@@ -219,6 +227,8 @@ MonoBehaviour:
     lifetimeMin: 10
     lifetimeMax: 60
     canBurn: 0
+    spreadHeat: 1
+    canCool: 0
     combustionTemperature: 0
     burnLifeMultiplier: 1
     hasStartTemperature: 1
@@ -261,7 +271,97 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
+    spreadHeat: 0
+    canCool: 0
     combustionTemperature: 280
     burnLifeMultiplier: 10
     hasStartTemperature: 1
     startTemp: 20
+  - name: Stone
+    type: 7
+    material: 1
+    gradient:
+      serializedVersion: 2
+      key0: {r: 0.3490566, g: 0.3490566, b: 0.3490566, a: 1}
+      key1: {r: 0.5283019, g: 0.5283019, b: 0.5283019, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    hasDensity: 0
+    density: 0
+    hasLifetime: 0
+    lifetimeMin: 0
+    lifetimeMax: 0
+    canBurn: 1
+    spreadHeat: 0
+    canCool: 0
+    combustionTemperature: 600
+    burnLifeMultiplier: 0
+    hasStartTemperature: 1
+    startTemp: 20
+  - name: Magma
+    type: 8
+    material: 3
+    gradient:
+      serializedVersion: 2
+      key0: {r: 1, g: 0.21871549, b: 0, a: 1}
+      key1: {r: 1, g: 0.341349, b: 0.15599996, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    hasDensity: 1
+    density: 2
+    hasLifetime: 0
+    lifetimeMin: 0
+    lifetimeMax: 0
+    canBurn: 0
+    spreadHeat: 1
+    canCool: 1
+    combustionTemperature: 600
+    burnLifeMultiplier: 0
+    hasStartTemperature: 1
+    startTemp: 1300

@@ -16,7 +16,9 @@ namespace PowderToy
             WOOD,
             STEAM,
             FIRE,
-            OIL
+            OIL,
+            STONE,
+            MOLTEN_STONE
         }
 
         public enum MATERIAL
@@ -56,6 +58,8 @@ namespace PowderToy
         /// </summary>
         public bool IsSwapLocked;
 
+        public bool SpreadsHeat;
+        public bool CanCool;
         public bool HasChangedTemp;
 
         public void CopyFrom(in Particle copyFrom)
@@ -76,6 +80,8 @@ namespace PowderToy
             CanBurn = copyFrom.CanBurn;
             CombustionTemperature = copyFrom.CombustionTemperature;
             CurrentTemperature = copyFrom.CurrentTemperature;
+            SpreadsHeat = copyFrom.SpreadsHeat;
+            CanCool = copyFrom.CanCool;
         }
     }
 }

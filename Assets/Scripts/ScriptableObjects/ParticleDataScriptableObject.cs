@@ -35,9 +35,12 @@ namespace PowderToy.ScriptableObjects
             
             [Space(10f)]
             public bool canBurn;
+            public bool spreadHeat;
+            public bool canCool;
             public int combustionTemperature;
             [Min(0.1f)]
             public float burnLifeMultiplier;
+            
 
             [Space(10f)]
             public bool hasStartTemperature;
@@ -65,7 +68,7 @@ namespace PowderToy.ScriptableObjects
             }
         }
 
-        [SerializeField]
+        [SerializeField, NonReorderable]
         private ParticleData[] particleDatas;
 
         public Dictionary<Particle.TYPE, ParticleData> GetParticleDataDictionary()

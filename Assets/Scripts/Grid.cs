@@ -418,10 +418,8 @@ namespace PowderToy
 
                     switch (particle.Material)
                     {
-                        case Particle.MATERIAL.SOLID when particle.Type == Particle.TYPE.FIRE:
+                        case Particle.MATERIAL.SOLID/* when particle.SpreadsHeat*/:
                             break;
-                        case Particle.MATERIAL.SOLID:
-                            continue;
                         case Particle.MATERIAL.POWDER:
                             UpdatePowderParticle(_particleSurroundings, ref particle);
                             break;
@@ -434,7 +432,9 @@ namespace PowderToy
                         default:
                             throw new ArgumentOutOfRangeException();
                     }
-                    
+
+                    //Life Span Updates
+                    //------------------------------------------------//
                     if (particle.HasLifeSpan)
                     {
                         if (particle.Lifetime-- <= 0)
@@ -444,19 +444,29 @@ namespace PowderToy
                         }
                     }
 
-                    if (particle.Type == Particle.TYPE.FIRE)
+                    //Particle Temperature Updates
+                    //------------------------------------------------//
+                    bool shouldCheckMaterialState = false;
+                    if (particle.SpreadsHeat)
                     {
-                        FireParticleWarmSurroundings(_particleSurroundings);
+                        if (particle.CanCool && CardinalsMatchType(particle.Type, _particleSurroundings) == false)
+                        {
+                            EqualizeParticleTemperature(ref particle);
+                            shouldCheckMaterialState = true;
+                        }
+                        
+                        SpreadParticleHeatToSurroundings(_particleSurroundings);
                     }
                     //FIXME Might need a way of slowing the pace of this
                     else if (particle.HasChangedTemp == false && particle.CurrentTemperature != ambientTemperature)
                     {
-                        particle.CurrentTemperature += particle.CurrentTemperature > ambientTemperature? -1 : + 1;
-                        
-                        var hasAir = HasAir(_particleSurroundings);
-                        particle.HasChangedTemp = true;
-                        CheckShouldChangeState(hasAir, ref particle);
+                        EqualizeParticleTemperature(ref particle);
+                        shouldCheckMaterialState = true;
                     }
+                    
+                    if(shouldCheckMaterialState)
+                        CheckShouldChangeState(_particleSurroundings, ref particle);
+                    //------------------------------------------------//
                     
                     /*if(allowSleeping && particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
                         particle.Asleep = true;*/
@@ -525,9 +535,9 @@ namespace PowderToy
                 particle.HasChangedTemp = false;
                 particle.IsSwapLocked = false;
 
-                //Solid Particles do not move thus do not need to be updated. Unless they're on fire.
+                /*//Solid Particles do not move thus do not need to be updated. Unless they're on fire.
                 if(particle.Material == Particle.MATERIAL.SOLID && particle.Type != Particle.TYPE.FIRE)
-                    continue;
+                    continue;*/
                 //If we aren't updating the particle, don't queue it for updates
                 if(particle.Asleep)
                     continue;
@@ -818,15 +828,8 @@ namespace PowderToy
                 //------------------------------------------------//
                 
                 //Putting out fire overrides the need to check density
-                if (occupied && 
-                    myParticle.Type == Particle.TYPE.WATER && 
-                    occupyingParticle.Type == Particle.TYPE.FIRE)
-                {
-                    ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref myParticle, false);
-                    //MarkParticleForDeath(ref occupyingParticle);
-                    KillParticleImmediate(ref occupyingParticle);
-                    return true;
-                }
+                if (occupied && myParticle.Type == Particle.TYPE.WATER && occupyingParticle.SpreadsHeat)
+                    return TryExtinguish(ref myParticle, ref occupyingParticle);
 
                 //Check material densities
                 //------------------------------------------------//
@@ -947,42 +950,16 @@ namespace PowderToy
 
         //============================================================================================================//
 
-        private bool HasAir(in int[] particleSurroundings)
+        private void SpreadParticleHeatToSurroundings(in int[] particleSurroundings)
         {
-            //Check if there is an empty space near the fire
-            //------------------------------------------------//
-            //This is to slow the spread of fire, forcing it to work outside in
-            for (var i = 0; i < 8; i++)
-            {
-                var index = particleSurroundings[i];
-                if (index < 0)
-                    continue;
-
-                var gridPos = _gridPositions[index];
-                if (gridPos.IsOccupied)
-                    continue;
-
-                return true;
-
-            }
-
-            return false;
-        }
-        private void FireParticleWarmSurroundings(in int[] particleSurroundings)
-        {
-
-            var hasAir = HasAir(particleSurroundings);
-            //If there is not nearby air tile, then we can't pass on fire
-            //if (hasAir == false)
-            //    return;
-            
             //Check for things to burn
             //------------------------------------------------------------------//
             //[0 1 2]
             //[3 x 5]
             //[6 7 8]
+
             //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
-            for (var i = 0; i < 9; i++)
+            for (var i = 1; i < 9; i+=2)
             {
                 //Skip My Particle
                 if (i == 4)
@@ -1001,14 +978,14 @@ namespace PowderToy
                 if (posParticle.CanBurn == false)
                     continue;
                 
-                //Dont want to double burn
-                //if (posParticle.HasWarmed)
+                //Dont want to double burn, DOUBLE BURN SHOULD ONLY HAPPEN WITH CARDINALS
+                //if (posParticle.HasChangedTemp)
                 //    continue;
 
                 posParticle.CurrentTemperature++;
                 posParticle.HasChangedTemp = true;
 
-                CheckShouldChangeState(hasAir, ref posParticle);
+                CheckShouldChangeState(particleSurroundings, ref posParticle);
 
                 /*//TODO Should probably increase the chance of burning over time, when back-to-back calls occur
                 if (Random.Range(0, 100) > posParticle.ChanceToBurn)
@@ -1018,8 +995,42 @@ namespace PowderToy
             }
         }
 
-        private void CheckShouldChangeState(in bool hasAir, ref Particle particle)
+        private void EqualizeParticleTemperature(ref Particle particle)
         {
+            particle.CurrentTemperature += particle.CurrentTemperature > ambientTemperature? -1 : 1;
+                        
+            particle.HasChangedTemp = true;
+        }
+
+        private void CheckShouldChangeState(in int[] particleSurroundings, ref Particle particle)
+        {
+            //------------------------------------------------//
+
+            bool HasAir(in int[] particleSurroundings)
+            {
+                //Check if there is an empty space near the fire
+                //------------------------------------------------//
+                //This is to slow the spread of fire, forcing it to work outside in
+                for (var i = 0; i < 8; i++)
+                {
+                    var index = particleSurroundings[i];
+                    if (index < 0)
+                        continue;
+
+                    var gridPos = _gridPositions[index];
+                    if (gridPos.IsOccupied)
+                        continue;
+
+                    return true;
+
+                }
+
+                return false;
+            }
+
+            //------------------------------------------------//
+            var hasAir = HasAir(particleSurroundings);
+            
             if(particle.HasChangedTemp == false)
                 return;
 
@@ -1031,6 +1042,11 @@ namespace PowderToy
                 {
                     case Particle.TYPE.WATER:
                         ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref particle);
+                        break;
+                    case Particle.TYPE.STONE:
+                        ParticleFactory.ConvertTo(Particle.TYPE.MOLTEN_STONE, ref particle);
+                        particle.HasChangedTemp = true;
+                        particle.IsSwapLocked = true;
                         break;
                     case Particle.TYPE.WOOD when hasAir:
                     case Particle.TYPE.OIL when hasAir:
@@ -1050,11 +1066,43 @@ namespace PowderToy
                         else
                             KillParticleImmediate(ref particle);
                         break;
+                    case Particle.TYPE.MOLTEN_STONE:
+                        ParticleFactory.ConvertTo(Particle.TYPE.STONE, ref particle);
+                        particle.CurrentTemperature -= 50;
+                        particle.HasChangedTemp = true;
+                        particle.IsSwapLocked = true;
+                        break;
                 }
             }
             
 
 
+        }
+
+        private bool TryExtinguish(ref Particle waterParticle, ref Particle otherParticle)
+        {
+            if (waterParticle.Type != Particle.TYPE.WATER)
+                return false;
+            
+
+            switch (otherParticle.Type)
+            {
+                case Particle.TYPE.FIRE:
+                    KillParticleImmediate(ref otherParticle);
+                    break;
+                case Particle.TYPE.MOLTEN_STONE:
+                    ParticleFactory.ConvertTo(Particle.TYPE.STONE, ref otherParticle, false);
+                    otherParticle.CurrentTemperature -= 50;
+                    otherParticle.HasChangedTemp = true;
+                    otherParticle.IsSwapLocked = true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(otherParticle.Type), otherParticle.Type, null);
+            }
+            
+            ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref waterParticle, false);
+
+            return true;
         }
 
         //Density Functions
@@ -1181,6 +1229,30 @@ namespace PowderToy
             toParticle.XCoord = fromX;
             toParticle.YCoord = fromY;
 
+        }
+
+        private bool CardinalsMatchType(in Particle.TYPE particleType, in int[] particleSurroundings)
+        {
+            //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
+            for (var i = 1; i < 9; i+=2)
+            {
+                //Skip My Particle
+                if (i == 4)
+                    continue;
+                
+                var index = particleSurroundings[i];
+                if (index < 0)
+                    continue;
+
+                var gridPos = _gridPositions[index];
+                if (gridPos.IsOccupied == false)
+                    return false;
+
+                if (_activeParticles[gridPos.ParticleIndex].Type != particleType)
+                    return false;
+            }
+
+            return true;
         }
 
         //Unity Editor Functions
