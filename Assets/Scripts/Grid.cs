@@ -1047,11 +1047,19 @@ namespace PowderToy
             {
                 switch (particle.Type)
                 {
+                    case Particle.TYPE.ICE:
+                        ParticleFactory.ConvertTo(Particle.TYPE.WATER, ref particle);
+                        break;
                     case Particle.TYPE.WATER:
                         ParticleFactory.ConvertTo(Particle.TYPE.STEAM, ref particle);
                         break;
                     case Particle.TYPE.STONE:
                         ParticleFactory.ConvertTo(Particle.TYPE.MOLTEN_STONE, ref particle);
+                        particle.HasChangedTemp = true;
+                        particle.IsSwapLocked = true;
+                        break;
+                    case Particle.TYPE.METAL:
+                        ParticleFactory.ConvertTo(Particle.TYPE.MOLTEN_METAL, ref particle);
                         particle.HasChangedTemp = true;
                         particle.IsSwapLocked = true;
                         break;
@@ -1079,6 +1087,12 @@ namespace PowderToy
                         particle.HasChangedTemp = true;
                         particle.IsSwapLocked = true;
                         break;
+                    case Particle.TYPE.MOLTEN_METAL:
+                        ParticleFactory.ConvertTo(Particle.TYPE.METAL, ref particle);
+                        particle.CurrentTemperature -= 50;
+                        particle.HasChangedTemp = true;
+                        particle.IsSwapLocked = true;
+                        break;
                 }
             }
             
@@ -1099,6 +1113,12 @@ namespace PowderToy
                     break;
                 case Particle.TYPE.MOLTEN_STONE:
                     ParticleFactory.ConvertTo(Particle.TYPE.STONE, ref otherParticle, false);
+                    otherParticle.CurrentTemperature -= 50;
+                    otherParticle.HasChangedTemp = true;
+                    otherParticle.IsSwapLocked = true;
+                    break;
+                case Particle.TYPE.MOLTEN_METAL:
+                    ParticleFactory.ConvertTo(Particle.TYPE.METAL, ref otherParticle, false);
                     otherParticle.CurrentTemperature -= 50;
                     otherParticle.HasChangedTemp = true;
                     otherParticle.IsSwapLocked = true;

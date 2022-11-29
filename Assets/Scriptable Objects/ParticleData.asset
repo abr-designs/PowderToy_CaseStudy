@@ -51,8 +51,12 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 0
-    burnChance: 0
+    combustionTemperature: 0
     burnLifeMultiplier: 0
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 0
+    overrideTemp: 0
   - name: Sand
     type: 1
     material: 2
@@ -91,12 +95,12 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 0
-    spreadHeat: 0
-    canCool: 0
     combustionTemperature: 0
     burnLifeMultiplier: 1
-    hasStartTemperature: 1
-    startTemp: 20
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: 20
   - name: Water
     type: 2
     material: 3
@@ -135,12 +139,12 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    spreadHeat: 0
-    canCool: 0
     combustionTemperature: 100
     burnLifeMultiplier: 1
-    hasStartTemperature: 1
-    startTemp: 20
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: 20
   - name: Wood
     type: 3
     material: 1
@@ -179,12 +183,12 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    spreadHeat: 0
-    canCool: 0
     combustionTemperature: 350
     burnLifeMultiplier: 7.5
-    hasStartTemperature: 1
-    startTemp: 20
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: 20
   - name: Steam
     type: 4
     material: 4
@@ -223,12 +227,12 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    spreadHeat: 0
-    canCool: 0
     combustionTemperature: 100
     burnLifeMultiplier: 1
-    hasStartTemperature: 1
-    startTemp: 200
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: 200
   - name: Fire
     type: 5
     material: 4
@@ -267,12 +271,12 @@ MonoBehaviour:
     lifetimeMin: 10
     lifetimeMax: 60
     canBurn: 0
-    spreadHeat: 1
-    canCool: 0
     combustionTemperature: 0
     burnLifeMultiplier: 1
-    hasStartTemperature: 1
-    startTemp: 500
+    spreadHeat: 1
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: 500
   - name: Oil
     type: 6
     material: 3
@@ -311,12 +315,12 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    spreadHeat: 0
-    canCool: 0
     combustionTemperature: 280
     burnLifeMultiplier: 10
-    hasStartTemperature: 1
-    startTemp: 20
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: 20
   - name: Stone
     type: 7
     material: 1
@@ -355,12 +359,12 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 1
-    spreadHeat: 0
-    canCool: 0
     combustionTemperature: 600
     burnLifeMultiplier: 0
-    hasStartTemperature: 1
-    startTemp: 20
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: 20
   - name: Magma
     type: 8
     material: 3
@@ -399,9 +403,141 @@ MonoBehaviour:
     lifetimeMin: 0
     lifetimeMax: 0
     canBurn: 0
-    spreadHeat: 1
-    canCool: 1
     combustionTemperature: 600
     burnLifeMultiplier: 0
-    hasStartTemperature: 1
-    startTemp: 1300
+    spreadHeat: 1
+    canCool: 1
+    overrideStartTemperature: 1
+    overrideTemp: 1300
+  - name: Copper
+    type: 9
+    material: 1
+    gradient:
+      serializedVersion: 2
+      key0: {r: 1, g: 0.7466686, b: 0.3537736, a: 1}
+      key1: {r: 0.85800004, g: 0.5746564, b: 0.19476601, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    hasDensity: 0
+    density: 0
+    hasLifetime: 0
+    lifetimeMin: 0
+    lifetimeMax: 0
+    canBurn: 0
+    combustionTemperature: 1085
+    burnLifeMultiplier: 0
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 0
+    overrideTemp: 0
+  - name: Molten Copper
+    type: 10
+    material: 3
+    gradient:
+      serializedVersion: 2
+      key0: {r: 1, g: 0.8036706, b: 0.106000006, a: 1}
+      key1: {r: 1, g: 0.6780754, b: 0.109803915, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    hasDensity: 1
+    density: 8.9
+    hasLifetime: 0
+    lifetimeMin: 0
+    lifetimeMax: 0
+    canBurn: 0
+    combustionTemperature: 1085
+    burnLifeMultiplier: 0
+    spreadHeat: 1
+    canCool: 1
+    overrideStartTemperature: 1
+    overrideTemp: 2000
+  - name: Water Ice
+    type: 11
+    material: 1
+    gradient:
+      serializedVersion: 2
+      key0: {r: 0.48584908, g: 0.9794476, b: 1, a: 1}
+      key1: {r: 0.6314525, g: 0.8044556, b: 0.8113208, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    hasDensity: 0
+    density: 0
+    hasLifetime: 0
+    lifetimeMin: 0
+    lifetimeMax: 0
+    canBurn: 0
+    combustionTemperature: 0
+    burnLifeMultiplier: 0
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 1
+    overrideTemp: -50

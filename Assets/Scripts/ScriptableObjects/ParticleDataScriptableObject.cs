@@ -25,7 +25,7 @@ namespace PowderToy.ScriptableObjects
 
             [Header("Material Density")]
             public bool hasDensity;
-            [Range(0f,2f)]
+            [Range(0f,10f)]
             public float density;
 
             [Header("Lifetime")]

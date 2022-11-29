@@ -18,7 +18,10 @@ namespace PowderToy
             FIRE,
             OIL,
             STONE,
-            MOLTEN_STONE
+            MOLTEN_STONE,
+            METAL,
+            MOLTEN_METAL,
+            ICE
         }
 
         public enum MATERIAL
