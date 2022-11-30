@@ -451,7 +451,8 @@ namespace PowderToy
                     bool shouldCheckMaterialState = false;
                     if (particle.SpreadsHeat)
                     {
-                        if (particle.CanCool && CardinalsMatchType(particle.Type, _particleSurroundings) == false)
+                        //TODO Need to determine if this is the best way of cooling
+                        if (particle.CanCool && TypeCountAtCardinals(particle.Type, _particleSurroundings) < 4)
                         {
                             EqualizeParticleTemperature(ref particle);
                             shouldCheckMaterialState = true;
@@ -1258,8 +1259,10 @@ namespace PowderToy
 
         }
 
-        private bool CardinalsMatchType(in Particle.TYPE particleType, in int[] particleSurroundings)
+        //FIXME This should be heat centric, not type centric
+        private int TypeCountAtCardinals(in Particle.TYPE particleType, in int[] particleSurroundings)
         {
+            var count = 0;
             //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
             for (var i = 1; i < 9; i+=2)
             {
@@ -1269,17 +1272,23 @@ namespace PowderToy
                 
                 var index = particleSurroundings[i];
                 if (index < 0)
+                {
+                    //TODO Determine if considering offgrid is towards or against count
+                    count++;
                     continue;
+                }
 
                 var gridPos = _gridPositions[index];
                 if (gridPos.IsOccupied == false)
-                    return false;
+                    continue;
 
                 if (_activeParticles[gridPos.ParticleIndex].Type != particleType)
-                    return false;
+                    continue;
+
+                count++;
             }
 
-            return true;
+            return count;
         }
 
         //Unity Editor Functions
