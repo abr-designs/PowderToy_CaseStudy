@@ -2,6 +2,50 @@
 
 namespace PowderToy.Utilities
 {
+    public class SurroundingData
+    {
+        private static bool _ready;
+        private static Grid.GridPos[] _gridPosArray;
+        private static Particle[] _particles;
+        
+        public bool IsValid;
+        public bool IsOccupied;
+        
+        public int GridIndex;
+        public int ParticleIndex;
+        public Grid.GridPos GridPos;
+        public Particle Particle;
+
+        public SurroundingData(ref Grid.GridPos[] gridPosArray, ref Particle[] activeParticles)
+        {
+            if (_ready)
+                return;
+            
+            _gridPosArray = gridPosArray;
+            _particles = activeParticles;
+            _ready = true;
+        }
+        
+
+        public void Setup(in int gridIndex)
+        {
+            IsValid = gridIndex >= 0;
+            
+            if(IsValid == false)
+                return;
+
+            GridIndex = gridIndex;
+            GridPos = _gridPosArray[gridIndex];
+            IsOccupied = GridPos.IsOccupied;
+            
+            if (IsOccupied == false)
+                return;
+                
+            ParticleIndex = GridPos.ParticleIndex;
+            Particle = _particles[ParticleIndex];
+        }
+    }
+    
     public static class GridHelper
     {
         private static int _sizeX;
@@ -35,7 +79,7 @@ namespace PowderToy.Utilities
         /*[MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool IsLegalIndex(in int index) => index >= 0 && index < _maxSize;*/
         
-        public static void GetParticleSurroundings(in int originalX, in int originalY, ref int[] surroundingArray)
+        public static void GetParticleSurroundings(in int originalX, in int originalY, ref SurroundingData[] surroundingArray)
         {
             //[0 1 2]
             //[3 x 5]
@@ -51,22 +95,22 @@ namespace PowderToy.Utilities
             //Row[0]
             //------------------------------------------------//
             //FIXME There are issues with this corner conversion. Top-left corner minus one should not be row down right side
-            surroundingArray[0] = atLeft || atTop ? -1 : originalIndex + _sizeX - 1;//GridHelper.CoordinateToIndex(originalX - 1, originalY + 1);
-            surroundingArray[1] = atTop ? -1 : originalIndex + _sizeX;//GridHelper.CoordinateToIndex(originalX, originalY + 1);
-            surroundingArray[2] = atRight || atTop ? -1 : originalIndex + _sizeX + 1;//GridHelper.CoordinateToIndex(originalX + 1, originalY + 1);
+            surroundingArray[0].Setup(atLeft || atTop ? -1 : originalIndex + _sizeX - 1);//GridHelper.CoordinateToIndex(originalX - 1, originalY + 1);
+            surroundingArray[1].Setup(atTop ? -1 : originalIndex + _sizeX);//GridHelper.CoordinateToIndex(originalX, originalY + 1);
+            surroundingArray[2].Setup(atRight || atTop ? -1 : originalIndex + _sizeX + 1);//GridHelper.CoordinateToIndex(originalX + 1, originalY + 1);
             
             //Row[1]
             //------------------------------------------------//
-            surroundingArray[3] = atLeft ? -1 : originalIndex - 1;//GridHelper.CoordinateToIndex(originalX - 1, originalY);
+            surroundingArray[3].Setup(atLeft ? -1 : originalIndex - 1);//GridHelper.CoordinateToIndex(originalX - 1, originalY);
             //Original Coordinate
-            surroundingArray[4] = originalIndex;
-            surroundingArray[5] = atRight ? -1 : originalIndex + 1;//GridHelper.CoordinateToIndex(originalX + 1, originalY);
+            surroundingArray[4].Setup(originalIndex);
+            surroundingArray[5].Setup(atRight ? -1 : originalIndex + 1);//GridHelper.CoordinateToIndex(originalX + 1, originalY);
             
             //Row[2]
             //------------------------------------------------//
-            surroundingArray[6] = atLeft || atBottom ? -1 : originalIndex - _sizeX - 1;//GridHelper.CoordinateToIndex(originalX - 1, originalY - 1);
-            surroundingArray[7] = atBottom ? -1 : originalIndex - _sizeX;//GridHelper.CoordinateToIndex(originalX, originalY - 1);
-            surroundingArray[8] = atRight || atBottom ? -1 : originalIndex - _sizeX + 1;//GridHelper.CoordinateToIndex(originalX + 1, originalY - 1);
+            surroundingArray[6].Setup(atLeft || atBottom ? -1 : originalIndex - _sizeX - 1);//GridHelper.CoordinateToIndex(originalX - 1, originalY - 1);
+            surroundingArray[7].Setup(atBottom ? -1 : originalIndex - _sizeX);//GridHelper.CoordinateToIndex(originalX, originalY - 1);
+            surroundingArray[8].Setup(atRight || atBottom ? -1 : originalIndex - _sizeX + 1);//GridHelper.CoordinateToIndex(originalX + 1, originalY - 1);
         }
     }
 }
