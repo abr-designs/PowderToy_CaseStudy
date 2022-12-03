@@ -21,7 +21,8 @@ namespace PowderToy
             MOLTEN_STONE,
             METAL,
             MOLTEN_METAL,
-            ICE
+            ICE,
+            ACID
         }
 
         public enum MATERIAL
