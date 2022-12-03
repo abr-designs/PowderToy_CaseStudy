@@ -452,35 +452,47 @@ namespace PowderToy
 
                     //Particle Temperature Updates
                     //------------------------------------------------//
-                    bool shouldCheckMaterialState = false;
-                    if (particle.SpreadsHeat)
-                    {
-                        //TODO Need to determine if this is the best way of cooling
-                        if (particle.CanCool && HeatCountAtCardinals(particle.Type, _particleSurroundings) < 2)
-                        {
-                            EqualizeParticleTemperature(ref particle);
-                            shouldCheckMaterialState = true;
-                        }
-                        
-                        SpreadParticleHeatToSurroundings(_particleSurroundings);
-                    }
-                    //FIXME Might need a way of slowing the pace of this
-                    else if (particle.HasChangedTemp == false && particle.CurrentTemperature != ambientTemperature)
-                    {
-                        EqualizeParticleTemperature(ref particle);
-                        shouldCheckMaterialState = true;
-                    }
+                    CheckParticleMaterialState(ref particle);
                     
-                    if(shouldCheckMaterialState)
-                        CheckShouldChangeState(_particleSurroundings, ref particle);
+                    //Check Acid
                     //------------------------------------------------//
-                    
+
+                    if (particle.Type == Particle.TYPE.ACID)
+                        CheckAcidSurroundings(_particleSurroundings);
+
+                    //------------------------------------------------//
                     /*if(allowSleeping && particle.SleepCounter++ >= Particle.WAIT_TO_SLEEP)
                         particle.Asleep = true;*/
                 }
                 
                 _particleRowContainers[i].Clear();
             }
+        }
+
+        //Used to see if the particle has changed from Solid <=> Liquid <=> Gas
+        private void CheckParticleMaterialState(ref Particle particle)
+        {
+            bool shouldCheckMaterialState = false;
+            if (particle.SpreadsHeat)
+            {
+                //TODO Need to determine if this is the best way of cooling
+                if (particle.CanCool && HeatCountAtCardinals(_particleSurroundings) < 2)
+                {
+                    EqualizeParticleTemperature(ref particle);
+                    shouldCheckMaterialState = true;
+                }
+                        
+                SpreadParticleHeatToSurroundings(_particleSurroundings);
+            }
+            //FIXME Might need a way of slowing the pace of this
+            else if (particle.HasChangedTemp == false && particle.CurrentTemperature != ambientTemperature)
+            {
+                EqualizeParticleTemperature(ref particle);
+                shouldCheckMaterialState = true;
+            }
+                    
+            if(shouldCheckMaterialState)
+                CheckShouldChangeState(_particleSurroundings, ref particle);
         }
 
         private void CleanActiveParticles()
@@ -955,7 +967,10 @@ namespace PowderToy
                 return;
         }
 
+        //Particle Temperature functions
         //============================================================================================================//
+
+        #region Particle Temperature functions
 
         private void SpreadParticleHeatToSurroundings(in SurroundingData[] particleSurroundings)
         {
@@ -1062,7 +1077,7 @@ namespace PowderToy
                         break;
                     case Particle.TYPE.WOOD when hasAir:
                     case Particle.TYPE.OIL when hasAir:
-                        ParticleFactory.ConvertToFire(ref particle);
+                        ParticleFactory.ConvertToAndMaintainMaterial(Particle.TYPE.FIRE, ref particle);
                         break;
                     //default:
                     //    throw new ArgumentOutOfRangeException();
@@ -1129,9 +1144,13 @@ namespace PowderToy
             return true;
         }
 
+        #endregion //Particle Temperature functions
+
         //Density Functions
         //============================================================================================================//
-        
+
+        #region Density Functions
+
         private bool CheckDidSwapParticleDensity(
             in bool useSwapLock,
             in bool occupied, 
@@ -1208,6 +1227,13 @@ namespace PowderToy
             return true;
         }
 
+        #endregion //Density Functions
+
+        //Swap Position Functions
+        //============================================================================================================//
+
+        #region Swap Position Functions
+
         private void SwapParticlePositions(in int fromGridIndex, in int toGridIndex,
             ref GridPos fromGridPos, ref GridPos toGridPos,
             ref Particle fromParticle, ref Particle toParticle)
@@ -1223,11 +1249,11 @@ namespace PowderToy
             var fromX = fromParticle.XCoord;
             var fromY = fromParticle.YCoord;
 
-           fromParticle.XCoord = toParticle.XCoord;
-           fromParticle.YCoord = toParticle.YCoord;
+            fromParticle.XCoord = toParticle.XCoord;
+            fromParticle.YCoord = toParticle.YCoord;
 
-           toParticle.XCoord = fromX;
-           toParticle.YCoord = fromY;
+            toParticle.XCoord = fromX;
+            toParticle.YCoord = fromY;
 
         }
         private void SwapParticlePositions(in int fromGridIndex, in int toGridIndex,
@@ -1255,9 +1281,16 @@ namespace PowderToy
 
         }
 
+        #endregion //Swap Position Functions
+
+        //============================================================================================================//
+
         //FIXME This should be heat centric, not type centric
         private static int TypeCountAtCardinals(in Particle.TYPE particleType, in SurroundingData[] particleSurroundings)
         {
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
             var count = 0;
             //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
             for (var i = 1; i < 9; i+=2)
@@ -1286,8 +1319,11 @@ namespace PowderToy
             return count;
         }
         
-        private static int HeatCountAtCardinals(in Particle.TYPE particleType, in SurroundingData[] particleSurroundings)
+        private static int HeatCountAtCardinals(in SurroundingData[] particleSurroundings)
         {
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
             var count = 0;
             //Here we only want to check the cardinal directions so that only when fire is touching a tile can it transfer
             for (var i = 1; i < 9; i+=2)
@@ -1311,6 +1347,44 @@ namespace PowderToy
             }
 
             return count;
+        }
+
+        //Custom Particle Logic
+        //============================================================================================================//
+
+        private void CheckAcidSurroundings(in SurroundingData[] particleSurroundings)
+        {
+            //[0 1 2]
+            //[3 x 5]
+            //[6 7 8]
+            for (var i = 0; i < 9; i++)
+            {
+                if(i == 4)
+                    continue;
+
+                var data = particleSurroundings[i];
+                
+                if(data.IsValid == false || data.IsOccupied == false)
+                    continue;
+                
+                if(data.Particle.Material != Particle.MATERIAL.SOLID && data.Particle.Material != Particle.MATERIAL.POWDER)
+                    continue;
+                
+                if(data.Particle.Type == Particle.TYPE.ACID)
+                    continue;
+
+                if (Random.value > 0.0125f)
+                    continue;
+
+                ref var particle = ref _activeParticles[data.ParticleIndex];
+                
+                ParticleFactory.ConvertToAndMaintainMaterial(Particle.TYPE.ACID, ref particle);
+
+                particle.Lifetime /= 3;
+            }
+            
+            /*if(didConvert)
+                KillParticleImmediate(ref _activeParticles[particleSurroundings[4].ParticleIndex]);*/
         }
 
         //Unity Editor Functions

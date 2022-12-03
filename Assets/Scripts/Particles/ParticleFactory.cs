@@ -82,18 +82,20 @@ namespace PowderToy
             particleToConvert.CurrentTemperature = useCurrentTemp ? particleToConvert.CurrentTemperature : newTemplate.overrideTemp;
         }
 
-        public static void ConvertToFire(ref Particle toConvert)
+        public static void ConvertToAndMaintainMaterial(in Particle.TYPE newType, ref Particle toConvert)
         {
-            var fireTemplate = _templates[Particle.TYPE.FIRE];
+            var newTemplate = _templates[newType];
             var fromTemplate = _templates[toConvert.Type];
 
-            toConvert.Type = Particle.TYPE.FIRE;
-            toConvert.Color = fireTemplate.GetRandomColor();
+            toConvert.Type = newType;
+            toConvert.Color = newTemplate.GetRandomColor();
             toConvert.CanBurn = false;
-            toConvert.SpreadsHeat = fireTemplate.spreadHeat;
+            toConvert.SpreadsHeat = newTemplate.spreadHeat;
             
-            toConvert.HasLifeSpan = fireTemplate.hasLifetime;
-            toConvert.Lifetime = fireTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier);
+            toConvert.HasLifeSpan = newTemplate.hasLifetime;
+            
+            if(newTemplate.hasLifetime)
+                toConvert.Lifetime = newTemplate.GetRandomLifetime(fromTemplate.burnLifeMultiplier);
         }
         
         //============================================================================================================//
