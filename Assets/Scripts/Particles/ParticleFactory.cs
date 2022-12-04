@@ -63,10 +63,6 @@ namespace PowderToy
         }
 
         //============================================================================================================//
-
-
-        
-        //============================================================================================================//
         
         public static void ConvertTo(in Particle.TYPE toParticleType, ref Particle particleToConvert, in bool useCurrentTemp = true)
         {

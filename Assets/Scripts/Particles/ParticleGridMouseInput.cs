@@ -7,7 +7,11 @@ namespace PowderToy
     //TODO This needs to be a queue, race conditions causing issues with Updates
     public class ParticleGridMouseInput : MonoBehaviour
     {
-
+        [SerializeField]
+        private MeshRenderer meshRenderer;
+        [SerializeField]
+        private Camera camera;
+        
         private const int MIN_RADIUS = 0;
         private const int MAX_RADIUS = 7;
         public static Vector2Int MouseCoordinate { get; private set; }
@@ -22,6 +26,9 @@ namespace PowderToy
 
         private bool _mouseDown;
 
+        private bool _mouseOnGrid;
+        private Rect gridRect;
+
         //Unity Functions
         //============================================================================================================//
 
@@ -35,6 +42,25 @@ namespace PowderToy
         private void Start()
         {
             SpawnRadius = 0;
+
+            var min = meshRenderer.bounds.min;
+            var max = meshRenderer.bounds.max;
+
+            var minScreenPos = camera.WorldToScreenPoint(min);
+            var maxScreenPos = camera.WorldToScreenPoint(max);
+            
+
+            gridRect = new Rect
+            {
+                xMin = minScreenPos.x,
+                xMax = maxScreenPos.x,
+
+                yMin = minScreenPos.y,
+                yMax = maxScreenPos.y
+            };
+            
+            _screenSize = new Vector2(gridRect.width, gridRect.height);
+
 
             //Make sure that we announce the selected type on start
             //OnParticleTypeSelected?.Invoke(selectedParticleType);
@@ -73,11 +99,12 @@ namespace PowderToy
         private void Init(Vector2Int size)
         {
             _gridSize = size;
-            _screenSize = new Vector2(Screen.width, Screen.height);
         }
 
         private void OnTick()
         {
+            if (_mouseOnGrid == false)
+                return;
             if (_mouseDown == false)
                 return;
 
@@ -127,10 +154,39 @@ namespace PowderToy
         //============================================================================================================//
         private void UpdateScreenPosition()
         {
-            var mousePosition = Input.mousePosition;
+            //------------------------------------------------//
+            
+            void UpdateGridRect()
+            {
+                
+                var meshBounds = meshRenderer.bounds;
+                var min = meshBounds.min;
+                var max = meshBounds.max;
 
-            var x = Mathf.Clamp(Mathf.FloorToInt((mousePosition.x / _screenSize.x) * _gridSize.x), 0, _gridSize.x - 1);
-            var y = Mathf.Clamp(Mathf.FloorToInt((mousePosition.y / _screenSize.y) * _gridSize.y), 0, _gridSize.y - 1);
+                var minScreenPos = camera.WorldToScreenPoint(min);
+                var maxScreenPos = camera.WorldToScreenPoint(max);
+            
+                gridRect.xMin = minScreenPos.x;
+                gridRect.xMax = maxScreenPos.x;
+                gridRect.yMin = minScreenPos.y;
+                gridRect.yMax = maxScreenPos.y;
+            
+                _screenSize.x = gridRect.width;
+                _screenSize.y = gridRect.height;
+            }
+
+            //------------------------------------------------//
+            
+            var mousePosition = (Vector2)Input.mousePosition;
+
+            UpdateGridRect();
+            _mouseOnGrid = gridRect.Contains(mousePosition);
+
+            if (_mouseOnGrid == false)
+                return;
+
+            var x = Mathf.Clamp(Mathf.FloorToInt(((mousePosition.x - gridRect.xMin) / _screenSize.x) * _gridSize.x), 0, _gridSize.x - 1);
+            var y = Mathf.Clamp(Mathf.FloorToInt(((mousePosition.y - gridRect.yMin) / _screenSize.y) * _gridSize.y), 0, _gridSize.y - 1);
 
             MouseCoordinate = new Vector2Int(x, y);
         }
