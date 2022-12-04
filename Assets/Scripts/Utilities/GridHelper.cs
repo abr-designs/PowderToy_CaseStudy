@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using UnityEngine;
 
 namespace PowderToy.Utilities
 {
@@ -61,6 +62,22 @@ namespace PowderToy.Utilities
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2Int IndexToVector2Int(in int index)
+        {
+            var coord = IndexToCoordinate(index);
+
+            return new Vector2Int(coord.x, coord.y);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static (int x, int y) IndexToCoordinate(in int index)
+        {
+            var y = Mathf.FloorToInt((float)index / _sizeX);
+            var x = index - (y * _sizeX);
+
+            return (x, y);
+        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int CoordinateToIndex(in Particle particle) => (_sizeX * particle.YCoord) + particle.XCoord;

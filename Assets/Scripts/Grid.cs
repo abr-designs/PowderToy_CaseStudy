@@ -445,7 +445,8 @@ namespace PowderToy
                     {
                         if (particle.Lifetime-- <= 0)
                         {
-                            KillParticleImmediate(ref particle);
+                            if(CheckShouldKillParticle(ref particle))
+                                KillParticleImmediate(ref particle);
                             continue;
                         }
                     }
@@ -1357,6 +1358,8 @@ namespace PowderToy
             //[0 1 2]
             //[3 x 5]
             //[6 7 8]
+            int unoccupiedIndex = -1;
+            bool didConvert = false;
             for (var i = 0; i < 9; i++)
             {
                 if(i == 4)
@@ -1364,8 +1367,15 @@ namespace PowderToy
 
                 var data = particleSurroundings[i];
                 
-                if(data.IsValid == false || data.IsOccupied == false)
+                if(data.IsValid == false)
                     continue;
+                if (data.IsOccupied == false)
+                {
+                    if (unoccupiedIndex < 0)
+                        unoccupiedIndex = i;
+                    
+                    continue;
+                }
                 
                 if(data.Particle.Material != Particle.MATERIAL.SOLID && data.Particle.Material != Particle.MATERIAL.POWDER)
                     continue;
@@ -1381,10 +1391,33 @@ namespace PowderToy
                 ParticleFactory.ConvertToAndMaintainMaterial(Particle.TYPE.ACID, ref particle);
 
                 particle.Lifetime /= 3;
+                didConvert = true;
+            }
+
+            if (didConvert && unoccupiedIndex >= 0)
+            {
+                var coordinate = GridHelper.IndexToVector2Int(unoccupiedIndex);
+                SpawnParticle(Particle.TYPE.SMOKE, coordinate);
             }
             
             /*if(didConvert)
                 KillParticleImmediate(ref _activeParticles[particleSurroundings[4].ParticleIndex]);*/
+        }
+
+        //Should Kill Function
+        //============================================================================================================//
+
+        private static bool CheckShouldKillParticle(ref Particle particle)
+        {
+            switch (particle.Type)
+            {
+                case Particle.TYPE.FIRE:
+                case Particle.TYPE.ACID:
+                    ParticleFactory.ConvertTo(Particle.TYPE.SMOKE, ref particle);
+                    return false;
+                default:
+                    return true;
+            }
         }
 
         //Unity Editor Functions

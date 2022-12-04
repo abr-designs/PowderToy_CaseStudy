@@ -573,11 +573,55 @@ MonoBehaviour:
       m_Mode: 0
       m_NumColorKeys: 2
       m_NumAlphaKeys: 2
-    hasDensity: 0
-    density: 0
-    hasLifetime: 0
-    lifetimeMin: 0
-    lifetimeMax: 0
+    hasDensity: 1
+    density: 1.18
+    hasLifetime: 1
+    lifetimeMin: 50
+    lifetimeMax: 100
+    canBurn: 0
+    combustionTemperature: 0
+    burnLifeMultiplier: 0
+    spreadHeat: 0
+    canCool: 0
+    overrideStartTemperature: 0
+    overrideTemp: 0
+  - name: Smoke
+    type: 13
+    material: 4
+    gradient:
+      serializedVersion: 2
+      key0: {r: 0.23799999, g: 0.23799999, b: 0.23799999, a: 1}
+      key1: {r: 0.168, g: 0.168, b: 0.168, a: 1}
+      key2: {r: 0, g: 0, b: 0, a: 0}
+      key3: {r: 0, g: 0, b: 0, a: 0}
+      key4: {r: 0, g: 0, b: 0, a: 0}
+      key5: {r: 0, g: 0, b: 0, a: 0}
+      key6: {r: 0, g: 0, b: 0, a: 0}
+      key7: {r: 0, g: 0, b: 0, a: 0}
+      ctime0: 0
+      ctime1: 65535
+      ctime2: 0
+      ctime3: 0
+      ctime4: 0
+      ctime5: 0
+      ctime6: 0
+      ctime7: 0
+      atime0: 0
+      atime1: 65535
+      atime2: 0
+      atime3: 0
+      atime4: 0
+      atime5: 0
+      atime6: 0
+      atime7: 0
+      m_Mode: 0
+      m_NumColorKeys: 2
+      m_NumAlphaKeys: 2
+    hasDensity: 1
+    density: 0.96
+    hasLifetime: 1
+    lifetimeMin: 10
+    lifetimeMax: 30
     canBurn: 0
     combustionTemperature: 0
     burnLifeMultiplier: 0
