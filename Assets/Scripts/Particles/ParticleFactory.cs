@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using PowderToy.ScriptableObjects;
 using UnityEngine;
 
@@ -6,7 +7,6 @@ namespace PowderToy
 {
     public class ParticleFactory : MonoBehaviour
     {
-        //private static ParticleFactory _instance;
         private static bool _isReady;
         private static Dictionary<Particle.TYPE, ParticleDataScriptableObject.ParticleData> _templates;
 
@@ -17,6 +17,7 @@ namespace PowderToy
 
         public static void CreateParticle(ref Particle toSet, in Particle.TYPE particleType, in int index, in int xCoord, in int yCoord)
         {
+            
             if (_isReady == false)
             {
                 var instance = FindObjectOfType<ParticleFactory>();
@@ -60,6 +61,10 @@ namespace PowderToy
                 ChanceToBurn = (uint)template.burnChance
             };*/
         }
+
+        //============================================================================================================//
+
+
         
         //============================================================================================================//
         
@@ -99,6 +104,24 @@ namespace PowderToy
         }
         
         //============================================================================================================//
+
+#if UNITY_EDITOR
+        public static string[] GetParticleNames()
+        {
+            var instance = FindObjectOfType<ParticleFactory>();
+            var templates = instance.particleDataScriptableObject.GetParticleDataDictionary();
+            
+            var values = templates.Values.ToArray();
+            var outArray = new string[values.Length];
+
+            for (int i = 0; i < values.Length; i++)
+            {
+                outArray[i] = values[i].name;
+            }
+
+            return outArray;
+        }
+#endif
         
     }
 }

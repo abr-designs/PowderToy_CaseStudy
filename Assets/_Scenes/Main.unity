@@ -230,7 +230,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1189435738}
   - component: {fileID: 1189435740}
-  - component: {fileID: 1189435744}
   - component: {fileID: 1189435739}
   - component: {fileID: 1189435741}
   - component: {fileID: 1189435742}
@@ -288,6 +287,7 @@ MonoBehaviour:
   allowSleeping: 0
   size: {x: 30, y: 20}
   ambientTemperature: 20
+  coolingThresholdCount: 4
 --- !u!114 &1189435741
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -327,27 +327,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   particleDataScriptableObject: {fileID: 11400000, guid: 053dc13bb5426e34aaee0c42a6f124c6, type: 2}
---- !u!114 &1189435744
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1189435736}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f7cf51df187344239f830d867152ea88, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  coordinate: {x: 0, y: 0}
-  gridIndex: 0
-  isOccupied: 0
-  hasParticle: 0
-  particleType: 0
-  materialType: 0
-  lifeTime: 0
-  currentTemperature: 0
-  hasWarmed: 0
 --- !u!1 &1350904604
 GameObject:
   m_ObjectHideFlags: 0
@@ -655,10 +634,10 @@ Camera:
   m_FocalLength: 50
   m_NormalizedViewPortRect:
     serializedVersion: 2
-    x: 0.0021413276
-    y: 0.0016064257
-    width: 0.99571735
-    height: 0.99598396
+    x: 0.01183432
+    y: 0.01183432
+    width: 0.97633135
+    height: 0.97633135
   near clip plane: 0.3
   far clip plane: 1000
   field of view: 60

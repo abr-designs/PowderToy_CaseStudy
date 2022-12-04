@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using PowderToy;
 using PowderToy.ScriptableObjects;
 using PowderToy.UI;
@@ -49,6 +50,11 @@ namespace PowderToy.UI
         [SerializeField]
         private Particle.TYPE startSelection;
 
+        [SerializeField, TitleGroup("Debug Info")]
+        private TMP_Text debugText;
+        private StringBuilder sb;
+
+
         //Unity Functions
         //============================================================================================================//
 
@@ -75,6 +81,7 @@ namespace PowderToy.UI
                 return;
             }
 
+            UpdateDebugInfo();
             UpdateParticleCount();
             UpdateFrameRate(dt);
             _tickTimer = 0f;
@@ -115,6 +122,37 @@ namespace PowderToy.UI
             frameRateText.text = $"{fps.ToString()}fps";
         }
 
+        private void UpdateDebugInfo()
+        {
+            if (sb == null)
+                sb = new StringBuilder();
+
+            sb.Clear();
+            var coordinate = ParticleGridMouseInput.MouseCoordinate;
+            
+            var data = _particleGrid.GetParticleAtCoordinate(coordinate.x, coordinate.y);
+            //debugText
+
+            sb.AppendLine($"GridIndex: [{data.gridIndex.ToString()}]");
+            sb.AppendLine($"Occupied: {data.gridPos.IsOccupied.ToString()}");
+            sb.AppendLine();
+            if (data.particle == null)
+            {
+                sb.AppendLine("Particle: null");
+                debugText.text = sb.ToString();
+                return;
+            }
+            sb.AppendLine("Particle:");
+            sb.AppendLine($"Type: {particleNames[(int)data.particle.Type]}");
+            sb.AppendLine($"Material: {data.particle.Material}");
+            sb.AppendLine($"Lifetime: {data.particle.Lifetime.ToString()}");
+            sb.AppendLine($"Temp: {data.particle.CurrentTemperature.ToString()}");
+            
+
+            //hasWarmed = data.particle.HasChangedTemp;
+            debugText.text = sb.ToString();
+        }
+
         //Buttons Setup
         //============================================================================================================//
 
@@ -141,7 +179,8 @@ namespace PowderToy.UI
 
         private void OnValidate()
         {
-            particleNames = Enum.GetNames(typeof(Particle.TYPE));
+            
+            particleNames = ParticleFactory.GetParticleNames();
         }
 
 #endif

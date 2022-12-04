@@ -98,6 +98,8 @@ namespace PowderToy
 
         [SerializeField, DisableInPlayMode, TitleGroup("Properties")]
         private int ambientTemperature;
+        [SerializeField, DisableInPlayMode, TitleGroup("Properties"), Range(0,4)]
+        private int coolingThresholdCount = 2;
 
         public static int AmbientTemperature { get; private set; }
 
@@ -477,7 +479,7 @@ namespace PowderToy
             if (particle.SpreadsHeat)
             {
                 //TODO Need to determine if this is the best way of cooling
-                if (particle.CanCool && HeatCountAtCardinals(_particleSurroundings) < 2)
+                if (particle.CanCool && HeatCountAtCardinals(_particleSurroundings) < coolingThresholdCount)
                 {
                     EqualizeParticleTemperature(ref particle);
                     shouldCheckMaterialState = true;
@@ -1420,10 +1422,8 @@ namespace PowderToy
             }
         }
 
-        //Unity Editor Functions
+        //Debug Functions
         //============================================================================================================//
-
-#if UNITY_EDITOR
 
         public (bool legal, bool occupied, int gridIndex, GridPos gridPos, Particle particle) GetParticleAtCoordinate(in int xCoord, in int yCoord)
         {
@@ -1438,8 +1438,6 @@ namespace PowderToy
 
             return (true, true, gridIndex, gridPos, _activeParticles[gridPos.ParticleIndex]);
         }
-        
-#endif
         //============================================================================================================//
         
     }

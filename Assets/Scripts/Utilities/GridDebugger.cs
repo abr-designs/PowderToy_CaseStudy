@@ -1,7 +1,9 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
 
 namespace PowderToy.Utilities
 {
+    [Obsolete("Now built into UI")]
     public class GridDebugger : MonoBehaviour
     {
 
