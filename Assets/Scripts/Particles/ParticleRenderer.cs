@@ -11,14 +11,32 @@ namespace PowderToy
     {
         private static readonly int BaseMapPropertyID = Shader.PropertyToID("_BaseMap");
 
+        public enum DISPLAY
+        {
+            DEFAULT,
+            HEAT,
+            DEBUG
+        }
+
         //Properties
         //============================================================================================================//
         private static int _sizeX;
         private static int _sizeY;
 
+        [SerializeField, TitleGroup("Display Info")]
+        public DISPLAY displayType;
+
         [SerializeField, TitleGroup("Render Info")]
         private Renderer targetRenderer;
         private Material _sharedMaterial;
+
+        [SerializeField, TitleGroup("Heat Display Info")]
+        private Gradient heatGradient;
+
+        [SerializeField]
+        private int minTemp;
+        [SerializeField]
+        private int maxTemp;
         
 
         //Texture color array
@@ -31,6 +49,16 @@ namespace PowderToy
         //============================================================================================================//
 
         private void OnEnable() => Grid.OnInit += Init;
+
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+                displayType = DISPLAY.DEFAULT;
+            else if (Input.GetKeyDown(KeyCode.Alpha2))
+                displayType = DISPLAY.HEAT;
+            else if (Input.GetKeyDown(KeyCode.Alpha3))
+                displayType = DISPLAY.DEBUG;
+        }
 
         private void OnDisable() => Grid.OnInit -= Init;
 
@@ -69,6 +97,21 @@ namespace PowderToy
 
         public void UpdateTexture(in Particle[] particles, in int count)
         {
+            switch (displayType)
+            {
+                case DISPLAY.DEFAULT:
+                    UpdateTextureDefault(particles, count);
+                    break;
+                case DISPLAY.HEAT:
+                    UpdateTextureHeat(particles, count);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+
+        private void UpdateTextureDefault(in Particle[] particles, in int count)
+        {
             int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
             
             _blankTexture.CopyTo(_activeTexture, 0);
@@ -81,6 +124,27 @@ namespace PowderToy
                 var yCoord = particle.YCoord;
 
                 _activeTexture[CoordinateToIndex(xCoord, yCoord)] = particle.Color;
+            }
+
+            UpdateMousePos(ParticleGridMouseInput.SpawnRadius, ColorHelper.Red);
+            SetPixels(_activeTexture);
+        }
+        
+        private void UpdateTextureHeat(in Particle[] particles, in int count)
+        {
+            int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
+            
+            _blankTexture.CopyTo(_activeTexture, 0);
+            
+            //var count = particles.Count;
+            for (int i = 0; i < count; i++)
+            {
+                var particle = particles[i];
+                var xCoord = particle.XCoord;
+                var yCoord = particle.YCoord;
+
+                var tempT = Mathf.InverseLerp(minTemp, maxTemp, particle.CurrentTemperature);
+                _activeTexture[CoordinateToIndex(xCoord, yCoord)] = heatGradient.Evaluate(tempT);
             }
 
             UpdateMousePos(ParticleGridMouseInput.SpawnRadius, ColorHelper.Red);

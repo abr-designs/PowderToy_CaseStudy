@@ -84,9 +84,6 @@ namespace PowderToy
         [SerializeField, ReadOnly, TitleGroup("Debug Info")]
         private int _particleCount;
 
-        [SerializeField, TitleGroup("Debug Info")]
-        private bool DebugView;
-
         [SerializeField, TitleGroup("Particle Properties")]
         private bool allowSleeping = true;
         
@@ -199,10 +196,20 @@ namespace PowderToy
             
             QueueParticleRowsForNextTick();
 
-            if(DebugView == false)
-                _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
-            else
-                _particleRenderer.DEBUG_DisplayOccupiedSpace(_gridPositions);
+            //------------------------------------------------//
+            switch (_particleRenderer.displayType)
+            {
+                case ParticleRenderer.DISPLAY.DEFAULT:
+                case ParticleRenderer.DISPLAY.HEAT:
+                    _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
+                    break;
+                case ParticleRenderer.DISPLAY.DEBUG:
+                    _particleRenderer.DEBUG_DisplayOccupiedSpace(_gridPositions);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            //------------------------------------------------//
         }
 
         //GridCommandBuffer
