@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PowderToy.UI;
 using PowderToy.Utilities;
 using Sirenix.OdinInspector;
 using UnityEngine;
@@ -32,12 +33,14 @@ namespace PowderToy
 
         [SerializeField, TitleGroup("Heat Display Info")]
         private Gradient heatGradient;
+        [SerializeField, Min(0f)]
+        private float heatMapSmoothing = 0.03f;
+        private float minTempVelocity;
+        private float maxTempVelocity;
+        private float savedMin;
+        private float savedMax;
 
-        [SerializeField]
-        private int minTemp;
-        [SerializeField]
-        private int maxTemp;
-        
+
 
         //Texture color array
         //------------------------------------------------//    
@@ -48,25 +51,24 @@ namespace PowderToy
         //Unity Functions
         //============================================================================================================//
 
-        private void OnEnable() => Grid.OnInit += Init;
-
-        private void Update()
+        private void OnEnable()
         {
-            if (Input.GetKeyDown(KeyCode.Alpha1))
-                displayType = DISPLAY.DEFAULT;
-            else if (Input.GetKeyDown(KeyCode.Alpha2))
-                displayType = DISPLAY.HEAT;
-            else if (Input.GetKeyDown(KeyCode.Alpha3))
-                displayType = DISPLAY.DEBUG;
+            Grid.OnInit += Init;
+            UIManager.OnDisplayTypeSelected += OnDisplayTypeSelected;
         }
 
-        private void OnDisable() => Grid.OnInit -= Init;
+        private void OnDisable()
+        {
+            Grid.OnInit -= Init;
+            UIManager.OnDisplayTypeSelected -= OnDisplayTypeSelected;
+        }
 
         //Init Function
         //============================================================================================================//
 
         private void Init(Vector2Int size)
         {
+            displayType = DISPLAY.DEFAULT;
             //Setup Texture Size
             //------------------------------------------------------------------//
 
@@ -95,7 +97,7 @@ namespace PowderToy
             _sharedMaterial.SetTexture(BaseMapPropertyID, _testTexture);
         }
 
-        public void UpdateTexture(in Particle[] particles, in int count)
+        /*public void UpdateTexture(in Particle[] particles, in int count)
         {
             switch (displayType)
             {
@@ -108,9 +110,9 @@ namespace PowderToy
                 default:
                     throw new ArgumentOutOfRangeException();
             }
-        }
+        }*/
 
-        private void UpdateTextureDefault(in Particle[] particles, in int count)
+        public void UpdateTextureDefault(in Particle[] particles, in int count)
         {
             int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
             
@@ -129,10 +131,14 @@ namespace PowderToy
             UpdateMousePos(ParticleGridMouseInput.SpawnRadius, ColorHelper.Red);
             SetPixels(_activeTexture);
         }
+
         
-        private void UpdateTextureHeat(in Particle[] particles, in int count)
+        public void UpdateTextureHeat(in Particle[] particles, in int count, in float minTemp, in float maxTemp)
         {
             int CoordinateToIndex(in int x, in int y) => (_sizeX * y) + x;
+            
+            savedMin = Mathf.SmoothDamp(savedMin, minTemp, ref minTempVelocity, heatMapSmoothing);
+            savedMax = Mathf.SmoothDamp(savedMax, maxTemp, ref maxTempVelocity, heatMapSmoothing);
             
             _blankTexture.CopyTo(_activeTexture, 0);
             
@@ -143,7 +149,7 @@ namespace PowderToy
                 var xCoord = particle.XCoord;
                 var yCoord = particle.YCoord;
 
-                var tempT = Mathf.InverseLerp(minTemp, maxTemp, particle.CurrentTemperature);
+                var tempT = Mathf.InverseLerp(savedMin, savedMax, particle.CurrentTemperature);
                 _activeTexture[CoordinateToIndex(xCoord, yCoord)] = heatGradient.Evaluate(tempT);
             }
 
@@ -206,7 +212,14 @@ namespace PowderToy
             _testTexture.Apply();
         }
 
+        //Callback Functions
         //============================================================================================================//
 
+        private void OnDisplayTypeSelected(DISPLAY display)
+        {
+            displayType = display;
+        }
+        
+        //============================================================================================================//
     }
 }

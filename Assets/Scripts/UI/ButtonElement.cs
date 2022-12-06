@@ -13,9 +13,9 @@ namespace PowderToy.UI
         private Button button;
         private TMP_Text buttonText;
 
-        private Particle.TYPE particleType;
+        private Enum particleType;
 
-        public void Init(in string displayText, in Particle.TYPE type, Action<Particle.TYPE> buttonPressCallback)
+        public void Init<E>(in string displayText, in E type, Action<E> buttonPressCallback) where E: Enum
         {
             particleType = type;
             buttonText = gameObject.GetComponentInChildren<TMP_Text>();
@@ -24,7 +24,7 @@ namespace PowderToy.UI
             button = GetComponent<Button>();
             button.onClick.AddListener(() =>
             {
-                buttonPressCallback.Invoke(particleType);
+                buttonPressCallback.Invoke((E)particleType);
             });
         }
     }

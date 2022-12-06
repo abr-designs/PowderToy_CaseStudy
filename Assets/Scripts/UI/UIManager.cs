@@ -17,6 +17,7 @@ namespace PowderToy.UI
     public class UIManager : MonoBehaviour
     {
         public static Action<Particle.TYPE> OnParticleTypeSelected;
+        public static Action<ParticleRenderer.DISPLAY> OnDisplayTypeSelected;
 
         //Properties
         //============================================================================================================//
@@ -37,18 +38,22 @@ namespace PowderToy.UI
 
         [SerializeField, ReadOnly] private string[] particleNames;
 
-        [SerializeField, TitleGroup("Button List")]
+        [SerializeField, TitleGroup("Particle Button List")]
         private ButtonElement buttonPrefab;
-        private ButtonElement[] _activeButtons;
+        private ButtonElement[] _activeParticleButtons;
 
         [SerializeField]
-        private RectTransform buttonContainer;
-
+        private RectTransform particleButtonContainer;
         [SerializeField]
         private ParticleDataScriptableObject particleDataScriptableObject;
-
         [SerializeField]
         private Particle.TYPE startSelection;
+        
+        [SerializeField, TitleGroup("Display Button List")]
+        private RectTransform displayButtonContainer;
+        private ButtonElement[] _activeDisplayButtons;
+
+
 
         [SerializeField, TitleGroup("Debug Info")]
         private TMP_Text debugText;
@@ -68,7 +73,8 @@ namespace PowderToy.UI
         private void Start()
         {
             _particleGrid = FindObjectOfType<Grid>();
-            SetupButtons();
+            SetupParticleButtons();
+            SetupDisplayButtons();
         }
 
         // Update is called once per frame
@@ -107,6 +113,10 @@ namespace PowderToy.UI
             selectedTypeText.text = $"Spawn Type: {particleNames[(int)type]}";
             
             OnParticleTypeSelected?.Invoke(type);
+        }
+        private void OnDisplayButtonPressed(ParticleRenderer.DISPLAY type)
+        {
+            OnDisplayTypeSelected?.Invoke(type);
         }
 
         private void UpdateParticleCount()
@@ -156,10 +166,10 @@ namespace PowderToy.UI
         //Buttons Setup
         //============================================================================================================//
 
-        private void SetupButtons()
+        private void SetupParticleButtons()
         {
             var particleDatas = particleDataScriptableObject.GetParticleDataDictionary().Values.ToArray();
-            _activeButtons = new ButtonElement[particleDatas.Length];
+            _activeParticleButtons = new ButtonElement[particleDatas.Length];
             
             for (var i = 0; i < particleDatas.Length; i++)
             {
@@ -167,10 +177,29 @@ namespace PowderToy.UI
                 var particleType = particleData.type;
                 
                 
-                var buttonElement = Instantiate(buttonPrefab, buttonContainer, false);
+                var buttonElement = Instantiate(buttonPrefab, particleButtonContainer, false);
                 buttonElement.Init(particleData.name, particleType, OnParticleButtonPressed);
                 buttonElement.gameObject.name = $"{particleData.name}Button";
-                _activeButtons[i] = buttonElement;
+                _activeParticleButtons[i] = buttonElement;
+            }
+        }
+        
+        private void SetupDisplayButtons()
+        {
+            var displayTypes = (ParticleRenderer.DISPLAY[])Enum.GetValues(typeof(ParticleRenderer.DISPLAY));
+            var displayTypeNames = Enum.GetNames(typeof(ParticleRenderer.DISPLAY));
+            
+            _activeDisplayButtons = new ButtonElement[displayTypes.Length];
+
+            for (var i = 0; i < displayTypes.Length; i++)
+            {
+                var type = displayTypes[i];
+                var displayTypeName = displayTypeNames[i];
+                
+                var buttonElement = Instantiate(buttonPrefab, displayButtonContainer, false);
+                buttonElement.Init(displayTypeName, type, OnDisplayButtonPressed);
+                buttonElement.gameObject.name = $"{displayTypeName}Button";
+                _activeDisplayButtons[i] = buttonElement;
             }
         }
 

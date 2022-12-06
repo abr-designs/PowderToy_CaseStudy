@@ -99,6 +99,8 @@ namespace PowderToy
         private int coolingThresholdCount = 2;
 
         public static int AmbientTemperature { get; private set; }
+        private float minTemp;
+        private float maxTemp;
 
         private ParticleRenderer _particleRenderer;
 
@@ -200,8 +202,13 @@ namespace PowderToy
             switch (_particleRenderer.displayType)
             {
                 case ParticleRenderer.DISPLAY.DEFAULT:
+                    _particleRenderer.UpdateTextureDefault(_activeParticles, _particleCount);
+                    break;
                 case ParticleRenderer.DISPLAY.HEAT:
-                    _particleRenderer.UpdateTexture(_activeParticles, _particleCount);
+                    var dif = Mathf.Max(maxTemp - minTemp, ambientTemperature * 2f);
+                    var low = minTemp - (dif * 0.10f);
+                    var high = maxTemp + (dif * 0.05f);
+                    _particleRenderer.UpdateTextureHeat(_activeParticles, _particleCount, low, high);
                     break;
                 case ParticleRenderer.DISPLAY.DEBUG:
                     _particleRenderer.DEBUG_DisplayOccupiedSpace(_gridPositions);
@@ -411,6 +418,9 @@ namespace PowderToy
 
         private void UpdateParticles()
         {
+            minTemp = 999;
+            maxTemp = -999;
+            
             for (var i = 0; i < _sizeY; i++)
             {
                 var container = _particleRowContainers[i].ParticleIndices;
@@ -503,6 +513,11 @@ namespace PowderToy
                     
             if(shouldCheckMaterialState)
                 CheckShouldChangeState(_particleSurroundings, ref particle);
+
+            if (particle.CurrentTemperature < minTemp)
+                minTemp = particle.CurrentTemperature;
+            else if(particle.CurrentTemperature > maxTemp)
+                maxTemp = particle.CurrentTemperature;
         }
 
         private void CleanActiveParticles()
